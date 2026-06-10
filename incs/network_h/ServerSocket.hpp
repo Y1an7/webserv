@@ -6,14 +6,13 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:40:30 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/09 19:21:39 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/06/10 18:14:53 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef SERVERSOCKET_HPP
 #define SERVERSOCKET_HPP
 
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <string>
 #include <exception>
@@ -24,7 +23,7 @@ class ServerSocket
 		int					_fd;
 		int					_port;
 		std::string			_host;
-		struct sockaddr_in	_adress;
+		struct sockaddr_in	_address;
 	
 		ServerSocket(const ServerSocket& other);
 		ServerSocket&	operator=(const ServerSocket& other);
@@ -33,6 +32,7 @@ class ServerSocket
 		~ServerSocket();
 
 		void	init();
+		int		acceptConnect();
 		int		getFD() const;
 
 		class SocketException : public std::exception
