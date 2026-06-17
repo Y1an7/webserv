@@ -18,8 +18,8 @@
 class DummyConfig
 {
 	public:
-		int			_port;
-		std::string	_host;
+		int			port;
+		std::string	host;
 		size_t		max_client_body_size;
 		
 		DummyConfig() : _port(8080), _host("0.0.0.0"), max_client_body_size(1024 * 1024) {};

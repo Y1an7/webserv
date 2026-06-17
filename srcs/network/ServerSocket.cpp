@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 16:50:43 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/15 00:03:07 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/06/16 23:05:21 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,19 +26,19 @@ ServerSocket::~ServerSocket()
 	if (_fd != -1)
 	{
 		close(_fd);
-		std::cout << "Server socket closed on port: " << _config._port << std::endl;
+		std::cout << "Server socket closed on port: " << _config.port << std::endl;
 	}
 }
 void	ServerSocket::init()
 {
 	std::stringstream ss;
-	ss << _config._port;
+	ss << _config.port;
 	std::string portStr = ss.str();
 	struct addrinfo hints = addrinfo();
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	struct addrinfo *res;
-	if (getaddrinfo(_config._host.c_str(), portStr.c_str(), &hints, &res) != 0)
+	if (getaddrinfo(_config.host.c_str(), portStr.c_str(), &hints, &res) != 0)
 		throw SocketException(std::string("Failed getaddrinfo"));
 	
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -66,7 +66,10 @@ void	ServerSocket::init()
 	_address = *reinterpret_cast<struct sockaddr_in*>(res->ai_addr);
 	freeaddrinfo(res);
 	if (bind(_fd, (struct sockaddr*)&_address, sizeof(_address)) < 0)
+	{
+		close(_fd);
 		throw SocketException("Failed to bind socket to port");
+	}
 	if (listen(_fd, SOMAXCONN) < 0)
 	{
 		close(_fd);
@@ -85,10 +88,12 @@ int	ServerSocket::acceptConnect()
 	socklen_t			client_len = sizeof(client_addr);
 
 	int client_fd = accept(_fd, reinterpret_cast<struct sockaddr*>(&client_addr), &client_len);
+	if (client_fd < 0)
+		return (-1);
 	if (fcntl(client_fd, F_SETFL, O_NONBLOCK) < 0)
 	{
 		close(client_fd);
-		throw SocketException("Failed to set client socket to non-blocking mode");
+		return (-1);
 	}
 	return (client_fd);
 }
