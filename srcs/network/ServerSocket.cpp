@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 16:50:43 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/16 23:05:21 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/06/19 17:38:41 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,9 +77,14 @@ void	ServerSocket::init()
 	}
 }
 
-int	ServerSocket::getFD() const
+int	ServerSocket::getFd() const
 {
 	return (_fd);
+}
+
+const DummyConfig& ServerSocket::getConfig() const
+{
+	return (_config);
 }
 
 int	ServerSocket::acceptConnect()

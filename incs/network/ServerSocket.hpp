@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:40:30 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/15 00:03:51 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/06/19 17:38:35 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,10 @@ class ServerSocket
 		ServerSocket(const DummyConfig& config);
 		~ServerSocket();
 
-		void	init();
-		int		acceptConnect();
-		int		getFD() const;
+		void				init();
+		int					acceptConnect();
+		int					getFd() const;
+		const DummyConfig& getConfig() const;
 
 		class SocketException : public std::exception
 		{

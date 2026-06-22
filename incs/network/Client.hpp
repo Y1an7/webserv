@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/16 23:11:27 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/06/17 22:09:17 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,17 @@ class Client
 		Client&	operator=(const Client& other);
 		
 	public:
-		Client()
+		Client(int fd, const DummyConfig& config);
+		~Client();
+
+		int		getFD() const;
+		State	getState() const;
+		void	setState(State state);
+
+		bool	readData();
+		bool	writeData();
+
+		void	prepareHttpResponse();
 };
 
 #endif
