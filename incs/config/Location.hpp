@@ -18,6 +18,11 @@ private:
 	std::string					_cgiPath;
 
 public:
+	Location();
+	Location(const Location& other);
+	Location& operator=(const Location& other);
+	~Location();
+
 	//setters
 	void	setPath(const std::string& path);
 	void	addIndex(const std::string& indexPage);
@@ -27,7 +32,7 @@ public:
 	void	setCgiPath(const std:: string& cgiPath);
 	void	setCgiExtension(const std::string& cgiExt);
 	//getters
-	
+
 };
 
 #endif

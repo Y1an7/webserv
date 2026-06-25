@@ -16,6 +16,8 @@ private:
 
 public:
 	ConfigParser();
+	ConfigParser(const ConfigParser& other);
+	ConfigParser& operator=(const ConfigParser& other);
 	~ConfigParser();
 
 	void	tokenize(const std::string& filename);

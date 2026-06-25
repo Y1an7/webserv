@@ -16,8 +16,20 @@ private:
 	std::map<int, std::string>	_errorPages; //server check the map to search 
 	size_t						_clientMaxBodySize; //security check to prevent out of memory and crashing
 	std::vector<Location>		_locations; // a list of specific routing rules
-public:
 
+public:
+	ServerConfig();
+	ServerConfig(const ServerConfig& other);
+	ServerConfig& operator=(const ServerConfig& other);
+	~ServerConfig();
+
+	//setters
+	void	setPort(int port);
+	void	setHost(const std::string& host);
+	void	addServerNames(const std::string& serverNames);
+	void	setErrorPages(int code, std::string& error);
+	void	setClientMaxBodySize(size_t size);
+	void	addLocations(const Location& loc);
 };
 
 #endif
