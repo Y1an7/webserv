@@ -27,6 +27,8 @@ public:
 
 	void	tokenize(const std::string& filename);
 	void	parse();
+	void	parseServerBlock();
+	void	parseListen(ServerConfig& server);
 
 	class SyntaxException : public std::exception
 	{
