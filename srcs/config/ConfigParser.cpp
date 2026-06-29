@@ -66,3 +66,13 @@ void ConfigParser::tokenize(const std::string& filename)
 		this->_tokens.push_back(currentToken);
 	}
 }
+
+const char* ConfigParser::SyntaxException::what() const throw()
+{
+	return "Error: Config file syntax error.";
+}
+
+void	ConfigParser::parse()
+{
+	
+}
