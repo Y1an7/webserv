@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:56 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/19 17:47:53 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/01 21:54:03 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,8 +16,9 @@
 #include <vector>
 #include <map>
 #include <sys/epoll.h>
-#include "ServerSocket.hpp"
-#include "Client.hpp"
+
+class ServerSocket;
+class Client;
 
 class Server
 {
@@ -25,7 +26,32 @@ class Server
 		int							_epollFd;
 		std::vector<ServerSocket*>	_serverSocket;
 		std::map<int, Client*>		_clients;
-}
+
+		static const int			MAX_EVENTS = 1024;
+		struct epoll_event			_events[MAX_EVENTS];
+
+		void	acceptNewClient(ServerSocket* server);
+		void	handleClientRead(int clientFd);
+		void	handleClientWrite(int clientFd);
+		void	removeClient(int clientFd);
+	
+	public:
+		Server();
+		~Server();
+		void	addServerSocket(ServerSocket* server);
+		void	initEpoll();
+		void	run();
+	
+		class EpollException : public std::exception
+		{
+			private:
+				std::string _msg;
+			public:
+				EpollException(std::string msg) : _msg(msg) {}
+				virtual	~EpollException() throw() {}
+				virtual const char* what() const throw() { return (_msg.c_str()); }
+		};
+};
 
 
 #endif
