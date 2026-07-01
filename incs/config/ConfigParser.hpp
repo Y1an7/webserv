@@ -29,6 +29,9 @@ public:
 	void	parse();
 	void	parseServerBlock();
 	void	parseListen(ServerConfig& server);
+	void	parseServerName(ServerConfig& server);
+	void	parseClientMaxBodySize(ServerConfig& server);
+	void	parseLocationBlock(ServerConfig& server);
 
 	class SyntaxException : public std::exception
 	{

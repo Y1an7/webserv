@@ -39,6 +39,11 @@ void ConfigParser::tokenize(const std::string& filename)
 	{
 		if (c == '#')
 		{
+			if (!currentToken.empty())
+			{
+				this->_tokens.push_back(currentToken);
+				currentToken.clear();
+			}
 			while (file.get(c) && c != '\n' )
 			{}
 			continue ;
@@ -103,6 +108,16 @@ void	ConfigParser::parseServerBlock()
 	{
 		if (this->_tokens[this->_pos] == "listen")
 			this->parseListen(newServer);
+		else if (this->_tokens[this->_pos] == "server_name")
+			this->parseServerName(newServer);
+		else if (this->_tokens[this->_pos] == "client_max_body_size")
+			this->parseClientMaxBodySize(newServer);
+		else if (this->_tokens[this->_pos] == "location")
+		{
+			this->_pos++;
+			this->parseLocationBlock(newServer);
+		}
+	
 		else
 			throw ConfigParser::SyntaxException();
 	}
@@ -110,6 +125,7 @@ void	ConfigParser::parseServerBlock()
 	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != "}")
 		throw ConfigParser::SyntaxException();
 	this->_pos++;
+
 	this->_servers.push_back(newServer);
 }
 
@@ -119,7 +135,7 @@ void	ConfigParser::parseListen(ServerConfig& server)
 	if (this->_pos >= this->_tokens.size())
 		throw ConfigParser::SyntaxException();
 
-	std::string portStr = this->_tokens[this->_pos];
+	std::string portStr = this->_tokens[this->_pos]; //store the port string
 	size_t i = 0;
 	while (i < portStr.length())
 	{
@@ -129,14 +145,160 @@ void	ConfigParser::parseListen(ServerConfig& server)
 	}
 
 	int portNumber;
-	std::stringstream ss(portStr);
+	std::stringstream ss(portStr); //convert a string into an actual integer in C++98
 	ss >> portNumber;
 
-	if (portNumber <= 0 || portNumber > 65535)
+	if (portNumber <= 0 || portNumber > 65535) //this number is 2^16 -1
 		throw ConfigParser::SyntaxException();
 	server.setPort(portNumber);
 	this->_pos++;
 	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
 		throw ConfigParser::SyntaxException();
 	this->_pos++;
+}
+
+void	ConfigParser::parseServerName(ServerConfig& server)
+{
+	this->_pos++;
+	while (this->_pos < this->_tokens.size() && this->_tokens[this->_pos] != ";")
+	{
+		server.addServerNames(this->_tokens[this->_pos]);
+		this->_pos++;
+	}
+
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+		throw ConfigParser::SyntaxException();
+	this->_pos++;
+}
+
+void	ConfigParser::parseClientMaxBodySize(ServerConfig& server)
+{
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size())
+		throw ConfigParser::SyntaxException();
+
+	std::string token = this->_tokens[this->_pos];
+	size_t i = 0;
+	size_t multiplier = 1;
+
+	while (i < token.length())
+	{
+		if (!std::isdigit(token[i]))
+		{
+			if (i == token.size() - 1)
+			{
+				if (token[i] == 'm' || token[i] == 'M')
+					multiplier = 1024 * 1024;
+				else if (token[i] == 'k' || token[i] == 'K')
+					multiplier = 1024;
+				else
+					throw ConfigParser::SyntaxException();
+			}
+			else
+				throw ConfigParser::SyntaxException();
+		}
+		i++;
+	}
+
+	std::string pureNumberStr = token;
+	if (multiplier != 1)
+		pureNumberStr = token.substr(0, token.length() - 1);
+	
+	size_t parsedNumber;
+	std::stringstream ss(pureNumberStr);
+	ss >> parsedNumber;
+
+	size_t maxSize = ~(size_t(0));
+	if (multiplier > 0 && parsedNumber > (maxSize / multiplier))
+		throw ConfigParser::SyntaxException();
+
+	size_t	finalSize = parsedNumber * multiplier;
+	server.setClientMaxBodySize(finalSize);
+
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+		throw	ConfigParser::SyntaxException();
+	this->_pos++;
+}
+
+void	ConfigParser::parseLocationBlock(ServerConfig& server)
+{
+	Location	newLocation;
+	std::string	directive;
+
+	if (this->_pos >= this->_tokens.size())
+		throw ConfigParser::SyntaxException();
+	newLocation.setPath(this->_tokens[this->_pos]);
+	this->_pos++;
+
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != "{")
+		throw ConfigParser::SyntaxException();
+	this->_pos++;
+
+	while (this->_pos < this->_tokens.size() && this->_tokens[this->_pos] != "}")
+	{
+		directive = this->_tokens[this->_pos];
+		this->_pos++;
+
+		if (directive == "root")
+		{
+			if (this->_pos >= this->_tokens.size())
+				throw ConfigParser::SyntaxException();
+			newLocation.setRoot(this->_tokens[this->_pos]);
+			this->_pos++;
+		}
+		else if (directive == "autoindex")
+		{
+			if (this->_pos >= this->_tokens.size())
+				throw ConfigParser::SyntaxException();
+			if (this->_tokens[this->_pos] == "on")
+				newLocation.setAutoindex(true);
+			else if (this->_tokens[this->_pos] == "off")
+				newLocation.setAutoindex(false);
+			else
+				throw ConfigParser::SyntaxException();
+			this->_pos++;
+		}
+		else if (directive == "index")
+		{
+			while (this->_pos < this->_tokens.size() && this->_tokens[this->_pos] != ";")
+			{
+				newLocation.addIndex(this->_tokens[this->_pos]);
+				this->_pos++;
+			}
+		}
+		else if (directive == "methods")
+		{
+			while (this->_pos < this->_tokens.size() && this->_tokens[this->_pos] != ";")
+			{
+				newLocation.addMethod(this->_tokens[this->_pos]);
+				this->_pos++;
+			}
+		}
+		else if (directive == "cgi_extension")
+		{
+			if (this->_pos >= this->_tokens.size())
+				throw ConfigParser::SyntaxException();
+			newLocation.setCgiExtension(this->_tokens[this->_pos]);
+			this->_pos++;
+		}
+		else if (directive == "cgi_path")
+		{
+			if (this->_pos >= this->_tokens.size())
+				throw ConfigParser::SyntaxException();
+			newLocation.setCgiPath(this->_tokens[this->_pos]);
+			this->_pos++;
+		}
+		else
+			throw ConfigParser::SyntaxException();
+		
+		if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+			throw ConfigParser::SyntaxException();
+		this->_pos++;
+	}
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != "}")
+		throw ConfigParser::SyntaxException();
+	this->_pos++;
+
+	server.addLocations(newLocation);
 }
