@@ -25,6 +25,15 @@ ConfigParser& ConfigParser::operator=(const ConfigParser& other)
 
 ConfigParser::~ConfigParser() {}
 
+
+
+const std::vector<ServerConfig>& ConfigParser::getServers() const
+{
+	return this->_servers;
+}
+
+
+
 void ConfigParser::tokenize(const std::string& filename)
 {
 	std::ifstream	file(filename.c_str());
@@ -108,10 +117,19 @@ void	ConfigParser::parseServerBlock()
 	{
 		if (this->_tokens[this->_pos] == "listen")
 			this->parseListen(newServer);
+
+		else if (this->_tokens[this->_pos] == "host")
+			this->parseHost(newServer);
+
 		else if (this->_tokens[this->_pos] == "server_name")
 			this->parseServerName(newServer);
+
+		else if (this->_tokens[this->_pos] == "error_page")
+			this->parseHost(newServer);
+
 		else if (this->_tokens[this->_pos] == "client_max_body_size")
 			this->parseClientMaxBodySize(newServer);
+
 		else if (this->_tokens[this->_pos] == "location")
 		{
 			this->_pos++;
@@ -157,6 +175,56 @@ void	ConfigParser::parseListen(ServerConfig& server)
 	this->_pos++;
 }
 
+
+void	ConfigParser::parseHost(ServerConfig& server)
+{
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size())
+		throw ConfigParser::SyntaxException();
+
+	server.setHost(this->_tokens[this->_pos]);
+
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+		throw ConfigParser::SyntaxException();
+	this->_pos++;
+}
+
+
+void	ConfigParser::parseErrorPage(ServerConfig& server)
+{
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size())
+		throw ConfigParser::SyntaxException();
+	
+	std::string codeStr = this->_tokens[this->_pos]; //error code like 404
+	size_t i = 0;
+	while (i < codeStr.length())
+	{
+		if (!std::isdigit(codeStr[i]))
+			throw ConfigParser::SyntaxException();
+		i++;
+	}
+
+	int code;
+	std::stringstream ss(codeStr);
+	ss >> code;
+
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size())
+		throw ConfigParser::SyntaxException();
+	
+	std::string errorFile = this->_tokens[this->_pos]; //file path like /404.html
+	server.setErrorPages(code, errorFile);
+
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+		throw ConfigParser::SyntaxException();
+	this->_pos++;
+}
+
+
+
 void	ConfigParser::parseServerName(ServerConfig& server)
 {
 	this->_pos++;
@@ -170,6 +238,7 @@ void	ConfigParser::parseServerName(ServerConfig& server)
 		throw ConfigParser::SyntaxException();
 	this->_pos++;
 }
+
 
 void	ConfigParser::parseClientMaxBodySize(ServerConfig& server)
 {
@@ -302,3 +371,4 @@ void	ConfigParser::parseLocationBlock(ServerConfig& server)
 
 	server.addLocations(newLocation);
 }
+

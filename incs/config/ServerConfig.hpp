@@ -27,7 +27,7 @@ public:
 	void	setPort(int port);
 	void	setHost(const std::string& host);
 	void	addServerNames(const std::string& serverNames);
-	void	setErrorPages(int code, std::string& error);
+	void	setErrorPages(int code, const std::string& error);
 	void	setClientMaxBodySize(size_t size);
 	void	addLocations(const Location& loc);
 };

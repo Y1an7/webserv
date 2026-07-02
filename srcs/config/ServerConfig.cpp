@@ -43,7 +43,7 @@ void	ServerConfig::addServerNames(const std::string& serverNames)
 	this->_serverNames.push_back(serverNames);
 }
 
-void	ServerConfig::setErrorPages(int code, std::string& error)
+void	ServerConfig::setErrorPages(int code, const std::string& error)
 {
 	this->_errorPages[code] = error;
 }
