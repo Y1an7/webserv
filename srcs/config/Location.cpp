@@ -65,3 +65,38 @@ void	Location::setCgiExtension(const std::string& cgiExt)
 {
 	this->_cgiExtension = cgiExt;
 }
+
+const std::string& Location::getPath() const
+{
+	return this->_path;
+}
+
+const std::vector<std::string>& Location::getIndex() const
+{
+	return this->_index;
+}
+
+const std::string& Location::getRoot() const
+{
+	return this->_root;
+}
+
+bool Location::getAutoIndex() const
+{
+	return this->_autoindex;
+}
+
+const std::vector<std::string>& Location::getMethods() const
+{
+	return this->_methods;
+}
+
+const std::string& Location::getCgiExtension() const
+{
+	return this->_cgiExtension;
+}
+
+const std::string& Location::getCgiPath() const
+{
+	return this->_cgiPath;
+}

@@ -30,6 +30,15 @@ public:
 	void	setErrorPages(int code, const std::string& error);
 	void	setClientMaxBodySize(size_t size);
 	void	addLocations(const Location& loc);
+
+	//getters
+	int									getPort() const;
+	const std::string&					getHost() const;
+	const std::vector<std::string>&		getServerNames() const;
+	const std::map<int, std::string>&	getErrorPages() const;
+	size_t 								getClientMaxBodySize() const;
+	const std::vector<Location>&		getLocations() const;
+
 };
 
 #endif

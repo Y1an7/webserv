@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 16:50:43 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/23 20:18:48 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/02 18:29:17 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #include <iostream>
 
-ServerSocket::ServerSocket(const DummyConfig& config)
+ServerSocket::ServerSocket(const ServerConfig& config)
 	:	_fd(-1), _config(config), _address() {}
 
 ServerSocket::~ServerSocket()
@@ -26,19 +26,21 @@ ServerSocket::~ServerSocket()
 	if (_fd != -1)
 	{
 		close(_fd);
-		std::cout << "Server socket closed on port: " << _config.port << std::endl;
+		std::cout << "Server socket closed on port: " << _config.getPort() << std::endl;
 	}
 }
 void	ServerSocket::init()
 {
 	std::stringstream ss;
-	ss << _config.port;
+	ss << _config.getPort();
 	std::string portStr = ss.str();
+
 	struct addrinfo hints = addrinfo();
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	struct addrinfo *res;
-	if (getaddrinfo(_config.host.c_str(), portStr.c_str(), &hints, &res) != 0)
+
+	if (getaddrinfo(_config.getHost().c_str(), portStr.c_str(), &hints, &res) != 0)
 		throw SocketException(std::string("Failed getaddrinfo"));
 	
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -82,7 +84,7 @@ int	ServerSocket::getFd() const
 	return (_fd);
 }
 
-const DummyConfig& ServerSocket::getConfig() const
+const ServerConfig& ServerSocket::getConfig() const
 {
 	return (_config);
 }

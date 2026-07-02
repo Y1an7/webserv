@@ -16,9 +16,6 @@ private:
 	size_t						_pos;
 	std::vector<ServerConfig>	_servers; //for store parsing result
 
-	void						parserServerBlock();
-	void						parserListen(ServerConfig& server);
-
 public:
 	ConfigParser();
 	ConfigParser(const ConfigParser& other);

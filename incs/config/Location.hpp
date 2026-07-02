@@ -32,7 +32,13 @@ public:
 	void	setCgiPath(const std:: string& cgiPath);
 	void	setCgiExtension(const std::string& cgiExt);
 	//getters
-
+	const std::string&				getPath() const;
+	const std::vector<std::string>&	getIndex() const;
+	const std::string&				getRoot() const;
+	bool							getAutoIndex() const;
+	const std::vector<std::string>&	getMethods() const;
+	const std::string&				getCgiPath() const;
+	const std::string&				getCgiExtension() const;
 };
 
 #endif

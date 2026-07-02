@@ -57,3 +57,33 @@ void	ServerConfig::addLocations(const Location& loc)
 {
 	this->_locations.push_back(loc);
 }
+
+int	ServerConfig::getPort() const
+{
+	return this->_port;
+}
+
+const std::string& ServerConfig::getHost() const
+{
+	return this->_host;
+}
+
+const std::vector<std::string>& ServerConfig::getServerNames() const
+{
+	return this->_serverNames;
+}
+
+const std::map<int, std::string>& ServerConfig::getErrorPages() const
+{
+	return this->_errorPages;
+}
+
+size_t ServerConfig::getClientMaxBodySize() const
+{
+	return this->_clientMaxBodySize;
+}
+
+const std::vector<Location>& ServerConfig::getLocations() const
+{
+	return this->_locations;
+}

@@ -125,7 +125,7 @@ void	ConfigParser::parseServerBlock()
 			this->parseServerName(newServer);
 
 		else if (this->_tokens[this->_pos] == "error_page")
-			this->parseHost(newServer);
+			this->parseErrorPage(newServer);
 
 		else if (this->_tokens[this->_pos] == "client_max_body_size")
 			this->parseClientMaxBodySize(newServer);

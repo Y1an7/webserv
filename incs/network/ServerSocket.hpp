@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerSocket.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:40:30 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/19 17:38:35 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/02 18:52:26 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,25 +16,25 @@
 #include <netinet/in.h>
 #include <string>
 #include <exception>
-#include "DummyConfig.hpp"
+#include "incs/config/ServerConfig.hpp"
 
 class ServerSocket
 {
 	private:
 		int					_fd;
-		DummyConfig			_config;
+		ServerConfig		_config;
 		struct sockaddr_in	_address;
 	
 		ServerSocket(const ServerSocket& other);
 		ServerSocket&	operator=(const ServerSocket& other);
 	public:
-		ServerSocket(const DummyConfig& config);
+		ServerSocket(const ServerConfig& config);
 		~ServerSocket();
 
 		void				init();
 		int					acceptConnect();
 		int					getFd() const;
-		const DummyConfig& getConfig() const;
+		const ServerConfig& getConfig() const;
 
 		class SocketException : public std::exception
 		{
