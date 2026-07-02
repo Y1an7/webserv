@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/01 22:49:32 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/02 20:44:42 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,13 @@ Server::~Server()
 	_serverSocket.clear();
 }
 
-void	Server::addServerSocket(ServerSocket* server)
+void Server::addServerSocket(ServerSocket* server)
+{
+    if (server)
+        _serverSocket.push_back(server);
+}
+
+void	Server::initEpoll()
 {
 	for (size_t i = 0; i < _serverSocket.size(); ++i)
 	{
@@ -54,5 +60,56 @@ void	Server::addServerSocket(ServerSocket* server)
 		std::cout << "Server successfully initialized epoll with " << _serverSocket.size() << " ports." << std::endl;
 	}
 }
+
+void Server::run()
+{
+    std::cout << "Starting server event loop..." << std::endl;
+
+    while (true)
+    {
+        int numEvents = epoll_wait(_epollFd, _events, MAX_EVENTS, -1);
+        if (numEvents == -1)
+        {
+            if (errno == EINTR)
+                continue;
+            throw EpollException(std::string("epoll_wait failed: ") + strerror(errno));
+        }
+
+        for (int i = 0; i < numEvents; ++i)
+        {
+            int triggeredFd = _events[i].data.fd;
+            uint32_t events = _events[i].events;
+
+            if (events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+            {
+                removeClient(triggeredFd);
+                continue;
+            }
+
+            bool isNewConnection = false;
+            ServerSocket* matchedServer = NULL;
+            for (size_t j = 0; j < _serverSocket.size(); ++j)
+            {
+                if (triggeredFd == _serverSocket[j]->getFd())
+                {
+                    isNewConnection = true;
+                    matchedServer = _serverSocket[j];
+                    break;
+                }
+            }
+            if (isNewConnection)
+                acceptNewClient(matchedServer);
+            else
+            {
+                if (events & EPOLLIN)
+                    handleClientRead(triggeredFd);
+                if (events & EPOLLOUT)
+                    handleClientWrite(triggeredFd);
+            }
+        }
+    }
+}
+
+
 
 
