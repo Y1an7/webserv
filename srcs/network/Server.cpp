@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/02 20:44:42 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/02 21:02:14 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,6 +110,10 @@ void Server::run()
     }
 }
 
+void	Server::acceptNewClient(ServerSocket* server)
+{
+	
+}
 
 
 
