@@ -6,16 +6,18 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:56 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/01 21:54:03 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/03 16:51:35 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include <vector>
+#include <exception>
 #include <map>
+#include <string>
 #include <sys/epoll.h>
+#include <vector>
 
 class ServerSocket;
 class Client;
@@ -26,7 +28,6 @@ class Server
 		int							_epollFd;
 		std::vector<ServerSocket*>	_serverSocket;
 		std::map<int, Client*>		_clients;
-
 		static const int			MAX_EVENTS = 1024;
 		struct epoll_event			_events[MAX_EVENTS];
 

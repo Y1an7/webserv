@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/02 21:02:14 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/03 17:16:04 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,8 +40,8 @@ Server::~Server()
 
 void Server::addServerSocket(ServerSocket* server)
 {
-    if (server)
-        _serverSocket.push_back(server);
+	if (server)
+		_serverSocket.push_back(server);
 }
 
 void	Server::initEpoll()
@@ -61,59 +61,141 @@ void	Server::initEpoll()
 	}
 }
 
-void Server::run()
+void	Server::run()
 {
-    std::cout << "Starting server event loop..." << std::endl;
+	std::cout << "Starting server main event loop..." << std::endl;
+	
+	while (true)
+	{
+		int	numEvents = epoll_wait(_epollFd, _events, MAX_EVENTS, -1);
+		if (numEvents == -1)
+		{
+			if (errno == EINTR)
+				continue ;
+			throw EpollException(std::string("epoll_wait failed: ") + strerror(errno));
+		}
 
-    while (true)
-    {
-        int numEvents = epoll_wait(_epollFd, _events, MAX_EVENTS, -1);
-        if (numEvents == -1)
-        {
-            if (errno == EINTR)
-                continue;
-            throw EpollException(std::string("epoll_wait failed: ") + strerror(errno));
-        }
-
-        for (int i = 0; i < numEvents; ++i)
-        {
-            int triggeredFd = _events[i].data.fd;
-            uint32_t events = _events[i].events;
-
-            if (events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
-            {
-                removeClient(triggeredFd);
-                continue;
-            }
-
-            bool isNewConnection = false;
-            ServerSocket* matchedServer = NULL;
-            for (size_t j = 0; j < _serverSocket.size(); ++j)
-            {
-                if (triggeredFd == _serverSocket[j]->getFd())
-                {
-                    isNewConnection = true;
-                    matchedServer = _serverSocket[j];
-                    break;
-                }
-            }
-            if (isNewConnection)
-                acceptNewClient(matchedServer);
-            else
-            {
-                if (events & EPOLLIN)
-                    handleClientRead(triggeredFd);
-                if (events & EPOLLOUT)
-                    handleClientWrite(triggeredFd);
-            }
-        }
-    }
+		for (int i = 0; i < numEvents; ++i)
+		{
+			int 		triggeredFd = _events[i].data.fd;
+			uint32_t	events = _events[i].events;
+			//case 1: error
+			if (events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+			{
+				removeClient(triggeredFd);
+				continue ;
+			}
+			//case 2: if there is new connection
+			bool			isNewConnection = false;
+			ServerSocket*	matchedServer = NULL;
+			
+			for (size_t j = 0; j < _serverSocket.size(); ++j)
+			{
+				if (triggeredFd == _serverSocket[j]->getFd())
+				{
+					isNewConnection = true;
+					matchedServer = _serverSocket[j];
+					break ;
+				}
+			}
+			if (isNewConnection)
+				acceptNewClient(matchedServer);
+			else //case 3: (based on case 2) if the trigger is the old client send the request, we can response now
+			{
+				if (events & EPOLLIN)
+					handleClientRead(triggeredFd);
+				if (events & EPOLLOUT)
+					handleClientWrite(triggeredFd);
+			}
+		}
+	}
 }
 
 void	Server::acceptNewClient(ServerSocket* server)
 {
+	int	clientFd = server->acceptConnect();
+	if (clientFd == -1)
+	{
+		std::cerr << "Failed ro accept new client connection." << std ::endl;
+		return ;
+	}
 	
+	struct epoll_event ev;
+	std::memset(&ev, 0, sizeof(ev));
+	ev.events = EPOLLIN | EPOLLRDHUP;
+	ev.data.fd = clientFd;
+	if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, clientFd, &ev) == -1)
+	{
+		std::cerr << "Failed ro add client to epoll: " << strerror(errno) << std::endl;
+		close(clientFd);
+		return ;
+	}
+	
+	Client* newClient = new Client(clientFd, server->getConfig());
+	_clients[clientFd] = newClient;
+	std::cout << "New client accepted on FD: " << clientFd << std::endl;
 }
 
+void	Server::handleClientRead(int clientFd)
+{
+	if (_clients.find(clientFd) == _clients.end())
+		return ;
+	
+	Client* client = _clients[clientFd];
+	if (!client->readData())
+	{
+		removeClient(clientFd);
+		return ;
+	}
+	
+	if (client->getState() == Client::WRITING_RESPONSE)
+	{
+		client->prepareHttpResponse();
+		struct epoll_event ev;
+		std::memset(&ev, 0, sizeof(ev));
+		ev.events = EPOLLOUT | EPOLLRDHUP;
+		ev.data.fd = clientFd;
+		
+		if (epoll_ctl(_epollFd,EPOLL_CTL_MOD, clientFd, &ev) == -1)
+			removeClient(clientFd);
+	}
+}
 
+void	Server::handleClientWrite(int clientFd)
+{
+	if (_clients.find(clientFd) == _clients.end())
+		return ;
+	
+	Client* client = _clients[clientFd];
+	if (!client->writeData())
+	{
+		removeClient(clientFd);
+		return ;
+	}
+	
+	if (client->getState() == Client::READING_REQUEST)
+	{
+		struct epoll_event ev;
+		std::memset(&ev, 0, sizeof(ev));
+		ev.events = EPOLLOUT | EPOLLRDHUP;
+		ev.data.fd = clientFd;
 
+		if (epoll_ctl(_epollFd,EPOLL_CTL_MOD, clientFd, &ev) == -1)
+			removeClient(clientFd);
+	}
+	else if (client->getState() == Client::CLOSE_CONNECTION)
+		removeClient(clientFd);
+}
+
+void	Server::removeClient(int clientFd)
+{
+	std::cout << "Disconnecting client FD: " << clientFd << std::endl;
+	epoll_ctl(_epollFd, EPOLL_CTL_DEL, clientFd, NULL);
+	close(clientFd);
+	std::map<int, Client*>::iterator it = _clients.find(clientFd);
+	if (it != _clients.end())
+	{
+		delete it->second;
+		_clients.erase(it);
+	}
+}
