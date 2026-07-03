@@ -16,7 +16,7 @@
 #include <netinet/in.h>
 #include <string>
 #include <exception>
-#include "incs/config/ServerConfig.hpp"
+#include "../config/ServerConfig.hpp"
 
 class ServerSocket
 {

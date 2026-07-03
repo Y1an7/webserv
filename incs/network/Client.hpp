@@ -6,14 +6,14 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/06/17 22:09:17 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/03 16:58:15 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "DummyConfig.hpp"
+#include "../incs/config/ServerConfig.hpp"
 #include <string>
 
 class Client
@@ -28,7 +28,7 @@ class Client
 	
 	private:
 		int					_fd;
-		const DummyConfig&	_config;	
+		const ServerConfig&	_config;	
 		std::string			_requestBuffer;
 		std::string			_responseBuffer;
 		State				_state;
@@ -37,7 +37,7 @@ class Client
 		Client&	operator=(const Client& other);
 		
 	public:
-		Client(int fd, const DummyConfig& config);
+		Client(int fd, const ServerConfig& config);
 		~Client();
 
 		int		getFD() const;
