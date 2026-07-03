@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/03 17:16:04 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/03 23:40:05 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,7 +116,7 @@ void	Server::acceptNewClient(ServerSocket* server)
 	int	clientFd = server->acceptConnect();
 	if (clientFd == -1)
 	{
-		std::cerr << "Failed ro accept new client connection." << std ::endl;
+		std::cerr << "Failed to accept new client connection." << std ::endl;
 		return ;
 	}
 	
@@ -126,7 +126,7 @@ void	Server::acceptNewClient(ServerSocket* server)
 	ev.data.fd = clientFd;
 	if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, clientFd, &ev) == -1)
 	{
-		std::cerr << "Failed ro add client to epoll: " << strerror(errno) << std::endl;
+		std::cerr << "Failed to add client to epoll: " << strerror(errno) << std::endl;
 		close(clientFd);
 		return ;
 	}
@@ -177,7 +177,7 @@ void	Server::handleClientWrite(int clientFd)
 	{
 		struct epoll_event ev;
 		std::memset(&ev, 0, sizeof(ev));
-		ev.events = EPOLLOUT | EPOLLRDHUP;
+		ev.events = EPOLLIN | EPOLLRDHUP;
 		ev.data.fd = clientFd;
 
 		if (epoll_ctl(_epollFd,EPOLL_CTL_MOD, clientFd, &ev) == -1)

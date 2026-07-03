@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerSocket.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 16:50:43 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/02 18:29:17 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/03 23:42:40 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <iostream>
+#include <cstring>
 
 ServerSocket::ServerSocket(const ServerConfig& config)
 	:	_fd(-1), _config(config), _address() {}
@@ -35,7 +36,8 @@ void	ServerSocket::init()
 	ss << _config.getPort();
 	std::string portStr = ss.str();
 
-	struct addrinfo hints = addrinfo();
+	struct addrinfo hints;
+	std::memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	struct addrinfo *res;
