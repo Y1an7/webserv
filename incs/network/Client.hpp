@@ -6,14 +6,14 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/03 16:58:15 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/05 00:28:47 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "../incs/config/ServerConfig.hpp"
+#include "ServerConfig.hpp"
 #include <string>
 
 class Client
@@ -40,7 +40,7 @@ class Client
 		Client(int fd, const ServerConfig& config);
 		~Client();
 
-		int		getFD() const;
+		int		getFd() const;
 		State	getState() const;
 		void	setState(State state);
 
