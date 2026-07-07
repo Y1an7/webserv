@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:56 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/03 16:51:35 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/07 19:59:29 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,6 +53,5 @@ class Server
 				virtual const char* what() const throw() { return (_msg.c_str()); }
 		};
 };
-
 
 #endif
