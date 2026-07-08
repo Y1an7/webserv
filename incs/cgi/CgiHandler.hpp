@@ -5,6 +5,7 @@
 # include <string>
 # include <map>
 # include <unistd.h>
+# include <vector>
 
 struct	CgiRequest
 {
