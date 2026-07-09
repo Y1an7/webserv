@@ -144,5 +144,81 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 
 std::string CgiHandler::execute(const CgiRequest& req)
 {
+	std::string	result = "";
+	char		buffer[4096];
+	int			bytes_read;
+	int			status;
+
+	_buildEnvp(req);
+	_buildArgv(req);
+
+	if (pipe(_pipe_in) == -1 || pipe(_pipe_out) == -1)
+	{
+		_freeArray(_envp);
+		_envp = NULL;
+		_freeArray(_argv);
+		_argv = NULL;
+		return "Status: 500 Internal Server Error\r\n\r\n";
+	}
 	
+	_pid = fork();
+	if (_pid == -1)
+	{
+		_freeArray(_envp);
+		_envp = NULL;
+		_freeArray(_argv);
+		_argv = NULL;
+		return "Status: 500 Internal Server Error\r\n\r\n";
+	}
+
+	if (_pid == 0)
+	{
+		dup2(_pipe_in[0], STDIN_FILENO);
+		dup2(_pipe_out[1], STDOUT_FILENO);
+
+		close(_pipe_in[0]);
+		close(_pipe_in[1]);
+		close(_pipe_out[0]);
+		close(_pipe_out[1]);
+
+		execve(_argv[0], _argv, _envp);
+
+		std::cerr << "CGI execve failed!" << std::endl;
+		_freeArray(_envp);
+		_freeArray(_argv);
+		exit(1);
+	}
+
+	else
+	{
+		close(_pipe_in[0]);
+		_pipe_in[0] = -1;
+		close(_pipe_out[1]);
+		_pipe_out[1] = -1;
+
+		if (!req.httpBody.empty())
+			write(_pipe_in[1], req.httpBody.c_str(), req.httpBody.length());
+
+		close(_pipe_in[1]);
+		_pipe_in[1] = -1;
+
+		waitpid(_pid, &status, 0);
+
+		bytes_read = read(_pipe_out[0], buffer, sizeof(buffer) - 1);
+		while (bytes_read > 0)
+		{
+			buffer[bytes_read] = '\0';
+			result += buffer;
+			bytes_read = read(_pipe_out[0], buffer, sizeof(buffer) - 1);
+		}
+
+		close(_pipe_out[0]);
+		_pipe_out[0] = -1;
+
+		_freeArray(_envp);
+		_envp = NULL;
+		_freeArray(_argv);
+		_argv = NULL;
+	}
+	return result;
 }
