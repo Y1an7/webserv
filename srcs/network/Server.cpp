@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/03 23:40:05 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 00:07:09 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,8 +57,8 @@ void	Server::initEpoll()
 
 		if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, serverFd, &ev) == -1)
 			throw EpollException(std::string("epoll_ctl ADD serverFd failed: ") + strerror(errno));
-		std::cout << "Server successfully initialized epoll with " << _serverSocket.size() << " ports." << std::endl;
 	}
+	std::cout << "Server successfully initialized epoll with " << _serverSocket.size() << " ports." << std::endl;
 }
 
 void	Server::run()
@@ -104,7 +104,7 @@ void	Server::run()
 			{
 				if (events & EPOLLIN)
 					handleClientRead(triggeredFd);
-				if (events & EPOLLOUT)
+				if ((events & EPOLLOUT) && _clients.find(triggeredFd) != _clients.end())
 					handleClientWrite(triggeredFd);
 			}
 		}
@@ -157,7 +157,10 @@ void	Server::handleClientRead(int clientFd)
 		ev.data.fd = clientFd;
 		
 		if (epoll_ctl(_epollFd,EPOLL_CTL_MOD, clientFd, &ev) == -1)
+		{
 			removeClient(clientFd);
+			return ;
+		}
 	}
 }
 
@@ -184,7 +187,10 @@ void	Server::handleClientWrite(int clientFd)
 			removeClient(clientFd);
 	}
 	else if (client->getState() == Client::CLOSE_CONNECTION)
+	{
 		removeClient(clientFd);
+		return ;
+	}
 }
 
 void	Server::removeClient(int clientFd)

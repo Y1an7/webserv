@@ -26,7 +26,7 @@ CgiHandler& CgiHandler::operator=(const CgiHandler& other)
 		_pid = other._pid;
 		_state = other._state;
 		_inputBuffer = other._inputBuffer;
-		_OutputBUffer = other._OutputBUffer;
+		_outputBuffer = other._outputBuffer;
 		_startTime = other._startTime;
 		_pipe_in[0] = other._pipe_in[0];
 		_pipe_in[1] = other._pipe_in[1];
@@ -163,7 +163,7 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	_buildEnvp(req);
 	_buildArgv(req);
 	_inputBuffer = req.httpBody;
-	_OutputBUffer = "";
+	_outputBuffer = "";
 
 	if (pipe(_pipe_in) == -1 || pipe(_pipe_out) == -1)
 	{
@@ -206,7 +206,7 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 		close(_pipe_out[1]); _pipe_out[1] = -1;
 
 		_freeArray(_envp); _envp = NULL;
-		_freeArray(_argv); _envp = NULL;
+		_freeArray(_argv); _argv = NULL;
 
 		if (_inputBuffer.empty())
 		{
@@ -224,7 +224,7 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 
 bool CgiHandler::writeToCgi()
 {
-	if (_state != CGI_WRITING || _pipe_in[1])
+	if (_state != CGI_WRITING || _pipe_in[1] == -1)
 		return false;
 	
 	int bytesWritten = write(_pipe_in[1], _inputBuffer.c_str(), _inputBuffer.length());
@@ -243,7 +243,7 @@ bool CgiHandler::writeToCgi()
 
 	else if (bytesWritten == -1)
 	{
-		if (errno = EAGAIN || errno == EWOULDBLOCK)
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return true;
 		_state = CGI_ERROR;
 		return false;
@@ -263,7 +263,7 @@ bool	CgiHandler::readFromCgi()
 	if (bytesRead > 0)
 	{
 		buffer[bytesRead] = '\0';
-		_OutputBUffer += buffer;
+		_outputBuffer += buffer;
 		return true;
 	}
 
@@ -299,13 +299,13 @@ bool	CgiHandler::checkTimeout(long timeoutSeconds)
 
 		if (elapsed >= timeoutSeconds)
 		{
-			std::cerr << "CGI Timeout Exceeded!" << std::end
+			std::cerr << "CGI Timeout Exceeded!" << std::endl;
 			killCgi();
 			_state = CGI_ERROR;
 			return true;
 		}
-		return false;
 	}
+	return false;
 }
 
 
@@ -327,4 +327,6 @@ int	CgiHandler::getWriteFd() const { return _pipe_in[1];}
 int CgiHandler::getReadFd() const { return _pipe_out[0];}
 
 CgiHandler::CgiState CgiHandler::getState() const { return _state; }
+
+std::string CgiHandler::getOutput() const { return _outputBuffer; }
 
