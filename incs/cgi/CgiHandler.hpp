@@ -38,7 +38,7 @@ private:
 
 	CgiState		_state;
 	std::string		_inputBuffer;
-	std::string		_OutputBUffer;
+	std::string		_outputBuffer;
 
 	struct timeval	_startTime;
 
@@ -66,7 +66,6 @@ public:
 	bool			checkTimeout(long timeoutSeconds);
 	void			killCgi();
 
-	std::string	execute(const CgiRequest& req); //public interface aka entry point, std::string is the HTML result
 };
 
 
