@@ -14,6 +14,7 @@
 # 				network/Server.cpp \
 # 				network/ServerSocket.cpp \
 # 				http/HttpRequest.cpp \
+# 				http/HttpParser.cpp \
 # 				http/HttpResponse.cpp \
 # 				cgi/CgiHandler.cpp
 

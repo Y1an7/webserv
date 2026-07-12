@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/07 22:52:24 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/12 18:13:37 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,14 @@
 
 void	HttpRequest::trim(std::string& str)
 {
-	
+	std::string::size_type start = str.find_first_not_of(" \t\r\n");
+	if (start == std::string::npos)
+	{
+		str.clear();
+		return ;
+	}
+	std::string::size_type end = str.find_last_not_of(" \t\r\n");
+	str = str.substr(start, end - start + 1);
 }
 
 HttpRequest::HttpRequest()
@@ -23,6 +30,34 @@ HttpRequest::HttpRequest()
 }
 
 HttpRequest::~HttpRequest() {}
+
+void	HttpRequest::feed(const std::string& data)
+{
+	_rawBuffer += data;
+	bool keepParsing = true;
+
+	while (keepParsing && _state != PARSE_COMPLETE && _state != PARSE_ERROR)
+	{
+		switch (_state)
+		{
+			case PARSE_REQUEST_LINE:
+				keepParsing = parseRequestLine();
+				break ;
+			case PARSE_HEADERS:
+				keepParsing = parseHeaders();
+				break ;
+			case PARSE_BODY:
+				keepParsing = parseNormalBody();
+				break ;
+			case PARSE_CHUNKED_BODY:
+				keepParsing = parseChunkedBody();
+				break ;
+			default:
+				keepParsing = false;
+				break ;
+		}
+	}
+}
 
 void	HttpRequest::clear()
 {
