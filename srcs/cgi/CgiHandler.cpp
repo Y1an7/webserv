@@ -1,8 +1,10 @@
 #include "CgiHandler.hpp"
-#include <cctype>
+#include <fcntl.h>
 #include <sstream>
 #include <sys/wait.h>
+#include <unistd.h>
 #include <cstdlib>
+#include <cerrno>
 
 CgiHandler::CgiHandler() : _envp(NULL), _argv(NULL), _pid(-1)
 {
@@ -22,6 +24,10 @@ CgiHandler& CgiHandler::operator=(const CgiHandler& other)
 	if (this != &other)
 	{
 		_pid = other._pid;
+		_state = other._state;
+		_inputBuffer = other._inputBuffer;
+		_OutputBUffer = other._OutputBUffer;
+		_startTime = other._startTime;
 		_pipe_in[0] = other._pipe_in[0];
 		_pipe_in[1] = other._pipe_in[1];
 		_pipe_out[0] = other._pipe_out[0];
@@ -43,15 +49,16 @@ CgiHandler::~CgiHandler()
 		close(_pipe_out[0]);
 	if (_pipe_out[1] != -1) 
 		close(_pipe_out[1]);
+
+	if (_pid > 0)
+		killCgi();
 }
 
 void	CgiHandler::_freeArray(char ** array)
 {
-	int i;
-
 	if (!array)
 		return ;
-	i = 0;
+	int i = 0;
 	while (array[i] != NULL)
 	{
 		delete[] array[i];
@@ -60,21 +67,10 @@ void	CgiHandler::_freeArray(char ** array)
 	delete[] array;
 }
 
-
-std::string	formattedCgiHeaderKey(const std::string& originalKey)
+void	CgiHandler::_setNonBlocking(int fd)
 {
-	std::string	formattedKey = originalKey;
-	std::string::iterator str_it = formattedKey.begin();
-
-	while (str_it != formattedKey.end())
-	{
-		if (*str_it == '-')
-			*str_it = '_';
-		else
-			*str_it = std::toupper(*str_it);
-		++str_it;
-	}
-	return formattedKey;
+	if (fd != -1)
+		fcntl(fd, F_SETFL, O_NONBLOCK);
 }
 
 
@@ -96,6 +92,23 @@ void	CgiHandler::_buildArgv(const CgiRequest& req)
 	_argv[1] = NULL; //mandatory array terminator
 }
 
+
+
+std::string	formattedCgiHeaderKey(const std::string& originalKey)
+{
+	std::string	formattedKey = originalKey;
+	std::string::iterator str_it = formattedKey.begin();
+
+	while (str_it != formattedKey.end())
+	{
+		if (*str_it == '-')
+			*str_it = '_';
+		else
+			*str_it = std::toupper(*str_it);
+		++str_it;
+	}
+	return formattedKey;
+}
 
 
 void	CgiHandler::_buildEnvp(const CgiRequest& req)
@@ -142,33 +155,33 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	_envp[i] = NULL;
 }
 
-std::string CgiHandler::execute(const CgiRequest& req)
-{
-	std::string	result = "";
-	char		buffer[4096];
-	int			bytes_read;
-	int			status;
 
+
+
+bool CgiHandler::initCgi(const CgiRequest& req)
+{
 	_buildEnvp(req);
 	_buildArgv(req);
+	_inputBuffer = req.httpBody;
+	_OutputBUffer = "";
 
 	if (pipe(_pipe_in) == -1 || pipe(_pipe_out) == -1)
 	{
-		_freeArray(_envp);
-		_envp = NULL;
-		_freeArray(_argv);
-		_argv = NULL;
-		return "Status: 500 Internal Server Error\r\n\r\n";
+		_state = CGI_ERROR;
+		return false;
 	}
+
+	//non-blocking for parent's endpoints
+	_setNonBlocking(_pipe_in[1]);
+	_setNonBlocking(_pipe_out[0]);
 	
+	gettimeofday(&_startTime, NULL);
+
 	_pid = fork();
 	if (_pid == -1)
 	{
-		_freeArray(_envp);
-		_envp = NULL;
-		_freeArray(_argv);
-		_argv = NULL;
-		return "Status: 500 Internal Server Error\r\n\r\n";
+		_state = CGI_ERROR;
+		return false;
 	}
 
 	if (_pid == 0)
@@ -176,10 +189,8 @@ std::string CgiHandler::execute(const CgiRequest& req)
 		dup2(_pipe_in[0], STDIN_FILENO);
 		dup2(_pipe_out[1], STDOUT_FILENO);
 
-		close(_pipe_in[0]);
-		close(_pipe_in[1]);
-		close(_pipe_out[0]);
-		close(_pipe_out[1]);
+		close(_pipe_in[0]); close(_pipe_in[1]);
+		close(_pipe_out[0]); close(_pipe_out[1]);
 
 		execve(_argv[0], _argv, _envp);
 
@@ -191,34 +202,129 @@ std::string CgiHandler::execute(const CgiRequest& req)
 
 	else
 	{
-		close(_pipe_in[0]);
-		_pipe_in[0] = -1;
-		close(_pipe_out[1]);
-		_pipe_out[1] = -1;
+		close(_pipe_in[0]); _pipe_in[0] = -1;
+		close(_pipe_out[1]); _pipe_out[1] = -1;
 
-		if (!req.httpBody.empty())
-			write(_pipe_in[1], req.httpBody.c_str(), req.httpBody.length());
+		_freeArray(_envp); _envp = NULL;
+		_freeArray(_argv); _envp = NULL;
 
-		close(_pipe_in[1]);
-		_pipe_in[1] = -1;
-
-		waitpid(_pid, &status, 0);
-
-		bytes_read = read(_pipe_out[0], buffer, sizeof(buffer) - 1);
-		while (bytes_read > 0)
+		if (_inputBuffer.empty())
 		{
-			buffer[bytes_read] = '\0';
-			result += buffer;
-			bytes_read = read(_pipe_out[0], buffer, sizeof(buffer) - 1);
+			close(_pipe_in[1]);
+			_pipe_in[1] = -1;
+			_state = CGI_READING;
 		}
+		else
+			_state = CGI_WRITING;
+	}
+	return true;
+}
 
+
+
+bool CgiHandler::writeToCgi()
+{
+	if (_state != CGI_WRITING || _pipe_in[1])
+		return false;
+	
+	int bytesWritten = write(_pipe_in[1], _inputBuffer.c_str(), _inputBuffer.length());
+
+	if (bytesWritten > 0)
+	{
+		_inputBuffer.erase(0, bytesWritten);
+		if (_inputBuffer.empty())
+		{
+			close(_pipe_in[1]);
+			_pipe_in[1] = -1;
+			_state = CGI_READING;
+		}
+		return true;
+	}
+
+	else if (bytesWritten == -1)
+	{
+		if (errno = EAGAIN || errno == EWOULDBLOCK)
+			return true;
+		_state = CGI_ERROR;
+		return false;
+	}
+	return false;
+}
+
+
+bool	CgiHandler::readFromCgi()
+{
+	if (_state != CGI_READING || _pipe_out[0] == -1)
+		return false;
+	
+	char buffer[4096];
+	int bytesRead = read(_pipe_out[0], buffer, sizeof(buffer) - 1);
+
+	if (bytesRead > 0)
+	{
+		buffer[bytesRead] = '\0';
+		_OutputBUffer += buffer;
+		return true;
+	}
+
+	else if (bytesRead == 0)
+	{
 		close(_pipe_out[0]);
 		_pipe_out[0] = -1;
 
-		_freeArray(_envp);
-		_envp = NULL;
-		_freeArray(_argv);
-		_argv = NULL;
+		int status;
+		waitpid(_pid, &status, WNOHANG);
+		_pid = -1;
+
+		_state = CGI_DONE;
+		return true;
 	}
-	return result;
+
+	else
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return true;
+		_state = CGI_ERROR;
+		return false;
+	}
 }
+
+bool	CgiHandler::checkTimeout(long timeoutSeconds)
+{
+	if (_pid > 0 && (_state == CGI_WRITING || _state == CGI_READING))
+	{
+		struct timeval currenTime;
+		gettimeofday(&currenTime, NULL);
+		long elapsed = currenTime.tv_sec - _startTime.tv_sec;
+
+		if (elapsed >= timeoutSeconds)
+		{
+			std::cerr << "CGI Timeout Exceeded!" << std::end
+			killCgi();
+			_state = CGI_ERROR;
+			return true;
+		}
+		return false;
+	}
+}
+
+
+void	CgiHandler::killCgi()
+{
+	if (_pid > 0)
+	{
+		kill(_pid, SIGKILL);
+		waitpid(_pid, NULL, WNOHANG);
+		_pid = -1;
+	}
+}
+
+
+//getters
+
+int	CgiHandler::getWriteFd() const { return _pipe_in[1];}
+
+int CgiHandler::getReadFd() const { return _pipe_out[0];}
+
+CgiHandler::CgiState CgiHandler::getState() const { return _state; }
+
