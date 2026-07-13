@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/07 00:34:36 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 18:22:32 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,15 @@ Client::State	Client::getState() const
 void	Client::setState(State state)
 {
 	this->_state = state;
+}
+
+const HttpRequest&	Client::getRequest() const
+{
+
+}
+const HttpResponse&	Client::getResponse() const
+{
+
 }
 
 bool	Client::readData()

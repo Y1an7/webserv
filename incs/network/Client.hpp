@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/05 00:28:47 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 18:23:30 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 #define CLIENT_HPP
 
 #include "ServerConfig.hpp"
+#include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 #include <string>
 
 class Client
@@ -29,8 +31,8 @@ class Client
 	private:
 		int					_fd;
 		const ServerConfig&	_config;	
-		std::string			_requestBuffer;
-		std::string			_responseBuffer;
+		HttpRequest			_request;
+		HttpResponse		_response;
 		State				_state;
 		
 		Client(const Client& other);
@@ -40,14 +42,16 @@ class Client
 		Client(int fd, const ServerConfig& config);
 		~Client();
 
-		int		getFd() const;
-		State	getState() const;
-		void	setState(State state);
+		int					getFd() const;
+		State				getState() const;
+		void				setState(State state);
+		const HttpRequest&	getRequest() const;
+		const HttpResponse&	getResponse() const;
 
-		bool	readData();
-		bool	writeData();
+		bool				readData();
+		bool				writeData();
 
-		void	prepareHttpResponse();
+		void				prepareHttpResponse();
 };
 
 #endif

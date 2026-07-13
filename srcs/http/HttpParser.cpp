@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/12 18:13:00 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 13:42:07 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 18:09:58 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,6 +110,12 @@ bool	HttpRequest::parseHeaders()
 			else if (_headers.count("content-length"))
 			{
 				std::string clValue = _headers["content-length"];
+				if (clValue.empty())
+				{
+					_statusCode = 400;
+					_state = PARSE_ERROR;
+					return (false);
+				}
 				for (size_t i = 0; i < clValue.length(); ++i)
 				{
 					if (!std::isdigit(static_cast<unsigned char>(clValue[i])))
@@ -147,8 +153,9 @@ bool	HttpRequest::parseHeaders()
 
 		std::string key = line.substr(0, colonPos);
 		std::string	value = line.substr(colonPos + 1);
-		
-		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+
+		for (size_t i = 0; i < key.length(); ++i)
+			key[i] = ::tolower(static_cast<unsigned char>(key[i]));
 		trim(value);
 		
 		if (key == "content-length" && _headers.count("content-length"))
@@ -165,6 +172,111 @@ bool	HttpRequest::parseHeaders()
 			_headers[key] = value;
 		else
 			_headers[key] += ", " + value;
+	}
+	return (false);
+}
+
+bool	HttpRequest::parseNormalBody()
+{
+	if (_contentLength > _maxBodySize)
+	{
+		_statusCode = 413;
+		_state = PARSE_ERROR;
+		return (false);
+	}
+
+	size_t	byteNeeded = _contentLength - _body.length();
+	size_t	byteAvailable = _rawBuffer.length();
+
+	if (byteAvailable >= byteNeeded)
+	{
+		_body.append(_rawBuffer, 0, byteNeeded);
+		_rawBuffer.erase(0, byteNeeded);
+		_state = PARSE_COMPLETE;
+		return (true);
+	}
+	else
+	{
+		_body.append(_rawBuffer);
+		_rawBuffer.clear();
+		return (false);
+	}
+}
+
+bool	HttpRequest::parseChunkedBody()
+{
+	while (!_rawBuffer.empty())
+	{
+		if (_chunkSize == -1)
+		{
+			std::string::size_type pos = _rawBuffer.find("\r\n");
+			if (pos == std::string::npos)
+				return (false);
+			
+			std::string	sizeLine = _rawBuffer.substr(0, pos);
+			_rawBuffer.erase(0, pos + 2);
+
+			char*	endPtr;
+			_chunkSize = std::strtol(sizeLine.c_str(), &endPtr, 16);
+
+			if (endPtr == sizeLine.c_str() || _chunkSize < 0)
+			{
+				_statusCode = 400;
+				_state = PARSE_ERROR;
+				return (false);
+			}
+
+			if (_chunkSize > 0 && _body.length() + _chunkSize > _maxBodySize)
+			{
+				_statusCode = 413;
+				_state = PARSE_ERROR;
+				return (false);
+			}
+		}
+
+		if (_chunkSize == 0)
+		{
+			if (_rawBuffer.length() >= 2 && _rawBuffer.substr(0, 2) == "\r\n")
+			{
+				_rawBuffer.erase(0, 2);
+				_state = PARSE_COMPLETE;
+				return (true);
+			}
+			else if (_rawBuffer.length() < 2)
+				return (false);
+			else
+			{
+				_statusCode = 400;
+				_state = PARSE_ERROR;
+				return (false);
+			}
+		}
+
+		if (_chunkSize > 0)
+		{
+			if (_rawBuffer.length() >= static_cast<size_t>(_chunkSize) + 2)
+			{
+				if (_rawBuffer.substr(_chunkSize, 2) != "\r\n")
+				{
+					_statusCode = 400;
+					_state = PARSE_ERROR;
+					return (false);
+				}
+
+				if (_body.length() + _chunkSize > _maxBodySize)
+				{
+					_statusCode = 413;
+					_state = PARSE_ERROR;
+					return (false);
+				}
+
+				_body.append(_rawBuffer, 0, _chunkSize);
+				_rawBuffer.erase(0, _chunkSize + 2);
+				_chunkSize = -1;
+			}
+			else
+				return (false);
+		}
 	}
 	return (false);
 }
