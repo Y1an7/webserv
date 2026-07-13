@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:37 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/07 22:35:34 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 16:29:01 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,9 +42,10 @@ class HttpRequest
 		std::string							_version;
 		std::map<std::string, std::string>	_headers;
 		std::string							_body;
-
+		size_t								_maxBodySize;
 		size_t								_contentLength;
 		bool								_isChunked;
+		long								_chunkSize;
 
 		bool	parseRequestLine();
 		bool	parseHeaders();

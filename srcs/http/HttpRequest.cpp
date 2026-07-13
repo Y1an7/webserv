@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/12 18:13:37 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 16:43:24 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,8 @@ HttpRequest::~HttpRequest() {}
 
 void	HttpRequest::feed(const std::string& data)
 {
+	if (_state = PARSE_ERROR)
+		return ;
 	_rawBuffer += data;
 	bool keepParsing = true;
 
@@ -45,6 +47,8 @@ void	HttpRequest::feed(const std::string& data)
 				break ;
 			case PARSE_HEADERS:
 				keepParsing = parseHeaders();
+				if (keepParsing && (_state == PARSE_BODY || _state == PARSE_CHUNKED_BODY || _state == PARSE_COMPLETE))
+					keepParsing = false;
 				break ;
 			case PARSE_BODY:
 				keepParsing = parseNormalBody();
@@ -63,15 +67,15 @@ void	HttpRequest::clear()
 {
 	_state = PARSE_REQUEST_LINE;
 	_statusCode = 200;
-	_rawBuffer.clear();
-
 	_method = UNKNOWN;
 	_uri.clear();
 	_version.clear();
 	_headers.clear();
 	_body.clear();
+	_maxBodySize = 1048576; //1MB
 	_contentLength = 0;
 	_isChunked = false;
+	_chunkSize = -1;
 }
 HttpRequest::ParseState	HttpRequest::getState() const
 {
