@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 18:23:30 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 23:35:27 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ class Client
 		const ServerConfig&	_config;	
 		HttpRequest			_request;
 		HttpResponse		_response;
+		std::string			_responseBuffer;
 		State				_state;
 		
 		Client(const Client& other);

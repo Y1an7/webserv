@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 16:43:24 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/13 23:02:49 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ HttpRequest::~HttpRequest() {}
 
 void	HttpRequest::feed(const std::string& data)
 {
-	if (_state = PARSE_ERROR)
+	if (_state == PARSE_ERROR)
 		return ;
 	_rawBuffer += data;
 	bool keepParsing = true;
