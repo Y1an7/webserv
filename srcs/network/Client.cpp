@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 18:22:32 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/14 10:53:35 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,41 +49,54 @@ const HttpResponse&	Client::getResponse() const
 
 bool	Client::readData()
 {
-	char	buffer[4096];
-	int		bytesRead = recv(this->_fd, buffer, sizeof(buffer), 0);
+	char	buffer[8192];
+	ssize_t	bytesRead = recv(_fd, buffer, sizeof(buffer), 0);
+	
 	if (bytesRead > 0)
 	{
-		this->_requestBuffer.append(buffer, bytesRead);
-		size_t	headerEnd = this->_requestBuffer.find("\r\n\r\n");
-		if (headerEnd != std::string::npos)
+		_request.feed(std::string(buffer, bytesRead));
+		HttpRequest::ParseState reqState = _request.getState();
+		if (reqState == HttpRequest::PARSE_COMPLETE)
 		{
-			//httpRequest: request.iscComplete()
-			this->_state = WRITING_RESPONSE;
+			_state = WRITING_RESPONSE;
+			prepareHttpResponse();
+		}
+		else if (reqState == HttpRequest::PARSE_ERROR)
+		{
+			_state = WRITING_RESPONSE;
+			prepareHttpResponse();
 		}
 		return (true);
 	}
 	else if (bytesRead == 0)
+	{
+		_state = CLOSE_CONNECTION;
 		return (false);
+	}
 	else
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return (true);
-		std::cerr << "Client read error on FD " << this->_fd << std::endl;
+		std::cerr << "Error: Read error on fd " << _fd << ". Closing connection." << std::endl;
+		_state = CLOSE_CONNECTION;
 		return (false);
 	}
 }
 
 bool	Client::writeData()
 {
-	if (this->_responseBuffer.empty())
-		return true;
-	int	bytesSend = send(this->_fd, this->_responseBuffer.c_str(), this->_responseBuffer.length(), 0);
+	if (_responseBuffer.empty())
+		return (false);
+
+	ssize_t	bytesSend = send(_fd, _responseBuffer.c_str(), _responseBuffer.length(), 0);
 	if (bytesSend > 0)
 	{
-		this->_responseBuffer.erase(0, bytesSend);
-		if (this->_responseBuffer.empty())
-			this->_state = CLOSE_CONNECTION;
-		return true;
+		_responseBuffer.erase(0, bytesSend);
+		if (_responseBuffer.empty())
+		{
+			bool	keepAlive = true;
+			std::string reqConnection = _request.getHeader("connection");
+			if (reqConnection == "close")
+				keepAlive = false;
+		}
 	}
 	else if (bytesSend == -1)
 	{
