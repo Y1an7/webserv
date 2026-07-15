@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 23:02:49 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/15 21:04:39 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ void	HttpRequest::trim(std::string& str)
 
 HttpRequest::HttpRequest()
 {
-	clear();
+	reset();
 }
 
 HttpRequest::~HttpRequest() {}
@@ -63,7 +63,7 @@ void	HttpRequest::feed(const std::string& data)
 	}
 }
 
-void	HttpRequest::clear()
+void	HttpRequest::reset()
 {
 	_state = PARSE_REQUEST_LINE;
 	_statusCode = 200;
