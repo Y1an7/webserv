@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:37 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 16:29:01 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/15 21:03:57 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ class HttpRequest
 		~HttpRequest();
 		
 		void	feed(const std::string& data); //core interface
-		void	clear(); // reset
+		void	reset(); // reset
 		
 		ParseState									getState() const;
 		int											getStatusCode() const;
