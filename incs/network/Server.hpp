@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:56 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/07 19:59:29 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/16 20:24:43 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,14 @@ class Server
 		static const int			MAX_EVENTS = 1024;
 		struct epoll_event			_events[MAX_EVENTS];
 
+		std::map<int, Client*> _cgiReadFds;
+		std::map<int, Client*> _cgiWriteFds;
+
+		void	registerCgiFds(Client* client);
+		void	handleCgiRead(int fd);
+		void	handleCgiWrite(int fd);
+		void	cleanupCgiFds(int fd, bool isReadFd);
+
 		void	acceptNewClient(ServerSocket* server);
 		void	handleClientRead(int clientFd);
 		void	handleClientWrite(int clientFd);
@@ -42,7 +50,7 @@ class Server
 		void	addServerSocket(ServerSocket* server);
 		void	initEpoll();
 		void	run();
-	
+
 		class EpollException : public std::exception
 		{
 			private:

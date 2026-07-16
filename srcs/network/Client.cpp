@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/14 10:53:35 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/16 20:23:23 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,8 +58,13 @@ bool	Client::readData()
 		HttpRequest::ParseState reqState = _request.getState();
 		if (reqState == HttpRequest::PARSE_COMPLETE)
 		{
-			_state = WRITING_RESPONSE;
-			prepareHttpResponse();
+			if (checkAndInitCgi())
+				_state = HANDLING_CGI;
+			else
+			{
+				_state = WRITING_RESPONSE;
+				prepareHttpResponse();
+			}
 		}
 		else if (reqState == HttpRequest::PARSE_ERROR)
 		{
@@ -111,4 +116,42 @@ bool	Client::writeData()
 void	Client::prepareHttpResponse()
 {
 	
+}
+
+
+CgiHandler& Client::getCgiHandler()
+{
+	return (_cgi);
+}
+
+
+bool	Client::checkAndInitCgi()
+{
+	std::string uri = _request.getUri();
+	if (uri.find(".py") != std::string::npos || uri.find(".php") != std::string::npos)
+	{
+		_isCgiRequest = true;
+		CgiRequest	cgiReq;
+		cgiReq.method = _request.getMethodStr();
+
+		size_t	questionMarkPos = uri.find('?');
+		if (questionMarkPos != std::string::npos)
+		{
+			cgiReq.scriptPath = "." + uri.substr(0, questionMarkPos);
+			cgiReq.queryString = uri.substr(questionMarkPos + 1);
+		}
+		else
+		{
+			cgiReq.scriptPath = "." + uri;
+			cgiReq.queryString = "";
+		}
+
+		cgiReq.httpBody = _request.getBody();
+		cgiReq.headerInfo = _request.getHeaders();
+
+		if (_cgi.initCgi(cgiReq) == false)
+			return (false);
+		return (true);
+	}
+	return (false);
 }
