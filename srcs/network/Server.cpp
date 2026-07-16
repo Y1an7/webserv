@@ -6,13 +6,14 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 00:07:09 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/16 20:28:19 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Client.hpp"
 #include "ServerSocket.hpp"
+#include "CgiHandler.hpp"
 
 #include <iostream>
 #include <unistd.h>
@@ -79,12 +80,36 @@ void	Server::run()
 		{
 			int 		triggeredFd = _events[i].data.fd;
 			uint32_t	events = _events[i].events;
+
+			
 			//case 1: error
 			if (events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 			{
-				removeClient(triggeredFd);
+				if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
+					cleanupCgiFds(triggeredFd, true);
+				else if (_cgiWriteFds.find(triggeredFd) != _cgiWriteFds.end())
+					cleanupCgiFds(triggeredFd, false);
+				else
+					removeClient(triggeredFd);
 				continue ;
 			}
+
+
+			//cgi fd handling
+			if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
+			{
+				if (events & EPOLLIN)
+					handleCgiRead(triggeredFd);
+				continue;
+			}
+			if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
+			{
+				if (events & EPOLLOUT)
+					handleCgiRead(triggeredFd);
+				continue;
+			}
+
+
 			//case 2: if there is new connection
 			bool			isNewConnection = false;
 			ServerSocket*	matchedServer = NULL;
@@ -100,7 +125,9 @@ void	Server::run()
 			}
 			if (isNewConnection)
 				acceptNewClient(matchedServer);
-			else //case 3: (based on case 2) if the trigger is the old client send the request, we can response now
+
+			//case 3: (based on case 2) if the trigger is the old client send the request, we can response now
+			else
 			{
 				if (events & EPOLLIN)
 					handleClientRead(triggeredFd);
@@ -148,7 +175,9 @@ void	Server::handleClientRead(int clientFd)
 		return ;
 	}
 	
-	if (client->getState() == Client::WRITING_RESPONSE)
+	if (client->getState() == Client::HANDLING_CGI)
+		registerCgiFds(client);
+	else if (client->getState() == Client::WRITING_RESPONSE)
 	{
 		client->prepareHttpResponse();
 		struct epoll_event ev;
@@ -204,4 +233,92 @@ void	Server::removeClient(int clientFd)
 		delete it->second;
 		_clients.erase(it);
 	}
+}
+
+
+void	Server::registerCgiFds(Client* client)
+{
+	CgiHandler& cgi = client->getCgiHandler();
+
+	if (cgi.getState() == CgiHandler::CGI_WRITING)
+	{
+		int writeFd = cgi.getWriteFd();
+		if (writeFd != -1)
+		{
+			struct epoll_event ev;
+			std::memset(&ev, 0, sizeof(ev));
+			ev.events = EPOLLOUT;
+			ev.data.fd = writeFd;
+			epoll_ctl(_epollFd, EPOLL_CTL_ADD, writeFd, &ev);
+			_cgiWriteFds[writeFd] = client;
+		}
+	}
+
+	int readFd = cgi.getReadFd();
+	if (readFd != -1)
+	{
+		struct epoll_event ev;
+		std::memset(&ev, 0, sizeof(ev));
+		ev.events = EPOLLIN;
+		ev.data.fd = readFd;
+		epoll_ctl(_epollFd, EPOLL_CTL_ADD, readFd, &ev);
+		_cgiReadFds[readFd] = client;
+	}
+}
+
+void	Server::handleCgiWrite(int fd)
+{
+	Client* client = _cgiWriteFds[fd];
+	CgiHandler& cgi = client->getCgiHandler();
+
+	if (cgi.writeToCgi() == false)
+	{
+		if (cgi.getState() == CgiHandler::CGI_ERROR)
+		{
+			cleanupCgiFds(fd, false);
+			client->setState(Client::WRITING_RESPONSE);
+			client->prepareHttpResponse();
+		}
+	}
+
+	if (cgi.getState() == CgiHandler::CGI_READING)
+		cleanupCgiFds(fd, false);
+}
+
+
+void	Server::handleCgiRead(int fd)
+{
+	Client* client = _cgiReadFds[fd];
+	CgiHandler& cgi = client->getCgiHandler();
+
+	if (cgi.readFromCgi() == false && cgi.getState() == CgiHandler::CGI_ERROR)
+	{
+		cleanupCgiFds(fd, true);
+		client->setState(Client::WRITING_RESPONSE);
+		client->prepareHttpResponse();
+		return ;
+	}
+
+	if (cgi.getState() == CgiHandler::CGI_DONE)
+	{
+		cleanupCgiFds(fd, true);
+		client->setState(Client::WRITING_RESPONSE);
+		client->prepareHttpResponse();
+
+		struct epoll_event ev;
+		std::memset(&ev, 0, sizeof(ev));
+		ev.events = EPOLLOUT | EPOLLRDHUP;
+		ev.data.fd = client->getFd();
+		epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
+	}
+}
+
+
+void	Server::cleanupCgiFds(int fd, bool isReadFd)
+{
+	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
+	if (isReadFd)
+		_cgiReadFds.erase(fd);
+	else
+		_cgiWriteFds.erase(fd);
 }
