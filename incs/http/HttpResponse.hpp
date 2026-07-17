@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:36:23 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/15 22:19:26 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/17 17:01:51 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,6 @@ class HttpResponse
 		std::string	getDefaultStatusMessage(int code) const;
 		std::string	intToString(size_t value) const;
 		std::string	getCurrentDate() const;
-		void		generateDefaultErrorPage();
 
 	public:
 		HttpResponse();
@@ -41,7 +40,8 @@ class HttpResponse
 		HttpResponse(const HttpResponse& other);
 		HttpResponse& operator=(const HttpResponse& other);
 		
-		void	reset();
+		void				reset();
+		void				generateDefaultErrorPage();
 
 		int					getStatusCode() const;
 		std::string			getHeader(const std::string& key) const;
