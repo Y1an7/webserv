@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 16:27:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/15 23:26:20 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/16 20:40:07 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,4 +215,48 @@ void	HttpResponse::setFile(int fd, size_t size)
 	_fileFd = fd;
 	_fileSize = size;
 	setHeader("Content-Length", intToString(_body.length()));
+}
+
+const std::string& HttpResponse::buildAndGetHeaderString()
+{
+	if (getHeader("Server").empty())
+		setHeader("Server", "webserv/1.1");
+	if (getHeader("Data").empty())
+		setHeader("Date", getCurrentDate());
+	if (_statusMessage.empty())
+		_statusMessage = getDefaultStatusMessage(_statusCode);
+	
+	std::stringstream	ss;
+	ss << _version << " " << _statusCode << " " <<  _statusMessage << "\r\n";
+	std::map<std::string, std::string>::const_iterator it;
+	for (it = _headers.begin(); it != _headers.end(); ++it)
+		ss << it->first << ": " << it->second << "\r\n";
+	
+	ss << "\r\n";
+	_headerString = ss.str();
+	return (_headerString);
+}
+
+bool	HttpResponse::isHeaderSent() const
+{
+	return (_headersSent);
+}
+
+void	HttpResponse::setHeaderSent(bool status)
+{
+	_headersSent = status;
+}
+
+bool	HttpResponse::isComplete() const
+{
+	if (!_headersSent)
+		return false;
+	
+	size_t	expectedBodySize = 0;
+	if (_fileFd != -1)
+		expectedBodySize = _fileSize;
+	else
+		expectedBodySize = _body.length();
+	
+	return (_bytesSent >= expectedBodySize);
 }
