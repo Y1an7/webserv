@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:01 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/17 17:02:47 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/18 23:33:01 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,17 +27,25 @@ class RequestHandler
 		const Location*		_matchedLocation;
 		std::string			_resolvedPath;
 	
-		void	handleGet();
-		void	handlePost();
-		void	handleDelete();
-		void	handleError(int statusCode);
-	
-		void	matchLocation();
-		bool	isMethodAllowed() const;
-		void	resolvePhysicalPath();
+		void		handleGet();
+		void		handlePost();
+		void		handleDelete();
+		void		handleError(int statusCode);
 
-		bool	isDirectory(const std::string& path) const;
-		bool	isFile(const std::string& path) const;
+		void		handleCgi();
+		bool		isCgi(const std::string& path) const;
+
+		void		handleAutoIndex(const std::string& directoryPath);
+	
+		void		matchLocation();
+		bool		isMethodAllowed() const;
+		void		resolvePhysicalPath();
+
+		bool		isDirectory(const std::string& path) const;
+		bool		isFile(const std::string& path) const;
+
+		std::string	getMimeType(const std::string& path) const;
+		std::string	getExtension(const std::string& path) const;
 
 		RequestHandler(const RequestHandler&);
 		RequestHandler&	operator=(const RequestHandler&);
