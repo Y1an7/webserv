@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/16 20:23:23 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/18 18:38:42 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,11 +40,11 @@ void	Client::setState(State state)
 
 const HttpRequest&	Client::getRequest() const
 {
-
+	return (_request);
 }
 const HttpResponse&	Client::getResponse() const
 {
-
+	return (_response);
 }
 
 bool	Client::readData()
@@ -80,6 +80,8 @@ bool	Client::readData()
 	}
 	else
 	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return (true);
 		std::cerr << "Error: Read error on fd " << _fd << ". Closing connection." << std::endl;
 		_state = CLOSE_CONNECTION;
 		return (false);
@@ -97,19 +99,30 @@ bool	Client::writeData()
 		_responseBuffer.erase(0, bytesSend);
 		if (_responseBuffer.empty())
 		{
-			bool	keepAlive = true;
 			std::string reqConnection = _request.getHeader("connection");
 			if (reqConnection == "close")
-				keepAlive = false;
+			{
+				_state = CLOSE_CONNECTION;
+				return (false);
+			}
+			_request.reset();
+			_response.reset();
+			_state = READING_REQUEST;
+			return (true);
 		}
+		else
+			return (true);
 	}
+	
 	else if (bytesSend == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
+			return (true);
 		std::cerr << "Client write error on FD " << this->_fd << std::endl;
-		return false;
+		_state = CLOSE_CONNECTION;
+		return (false);
 	}
+	_state = CLOSE_CONNECTION;
 	return false;
 }
 
