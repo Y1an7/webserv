@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/16 20:28:19 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/18 16:32:25 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,10 +102,10 @@ void	Server::run()
 					handleCgiRead(triggeredFd);
 				continue;
 			}
-			if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
+			if (_cgiWriteFds.find(triggeredFd) != _cgiWriteFds.end())
 			{
 				if (events & EPOLLOUT)
-					handleCgiRead(triggeredFd);
+					handleCgiWrite(triggeredFd);
 				continue;
 			}
 
@@ -249,8 +249,10 @@ void	Server::registerCgiFds(Client* client)
 			std::memset(&ev, 0, sizeof(ev));
 			ev.events = EPOLLOUT;
 			ev.data.fd = writeFd;
-			epoll_ctl(_epollFd, EPOLL_CTL_ADD, writeFd, &ev);
-			_cgiWriteFds[writeFd] = client;
+			if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, writeFd, &ev) == -1)
+				std::cerr << "Error: epoll_ctl failed for CGI write pipe." << std::endl;
+			else
+				_cgiWriteFds[writeFd] = client;
 		}
 	}
 
@@ -261,8 +263,10 @@ void	Server::registerCgiFds(Client* client)
 		std::memset(&ev, 0, sizeof(ev));
 		ev.events = EPOLLIN;
 		ev.data.fd = readFd;
-		epoll_ctl(_epollFd, EPOLL_CTL_ADD, readFd, &ev);
-		_cgiReadFds[readFd] = client;
+		if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, readFd, &ev) == -1)
+			std::cerr << "Error: epoll_ctl failed for CGI read pipe." << std::endl;
+		else
+			_cgiReadFds[readFd] = client;
 	}
 }
 
