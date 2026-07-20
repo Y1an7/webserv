@@ -35,7 +35,7 @@ public:
 	int									getPort() const;
 	const std::string&					getHost() const;
 	const std::vector<std::string>&		getServerNames() const;
-	const std::map<int, std::string>&	getErrorPages() const;
+	const std::string					getErrorPages(int statusCode) const;
 	size_t 								getClientMaxBodySize() const;
 	const std::vector<Location>&		getLocations() const;
 
