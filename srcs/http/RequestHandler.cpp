@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/19 01:16:52 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/20 16:58:24 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,4 +121,92 @@ void	RequestHandler::handleGet()
 	_response.setStatusCode(200);
 	_response.setFile(fd, fileStat.st_size);
 	_response.setHeader("Content-Type", getMimeType(_resolvedPath));
+}
+
+void	RequestHandler::matchLocation()
+{
+	const std::string& uri = _request.getUri();
+	const std::vector<Location>& locations = _config.getLocations();
+
+	_matchedLocation = NULL;
+	size_t	maxMatchLength = 0;
+	
+	for (size_t i = 0; i < locations.size(); ++i)
+	{
+		const std::string& locPath = locations[i].getPath();
+		if (uri.find(locPath) == 0)
+		{
+			bool isDirectoryMatch = (uri.length() == locPath.length()) || 
+									(!locPath.empty() && locPath[locPath.length() - 1] == '/') ||
+									(uri[locPath.length()] == '/');
+			if (isDirectoryMatch)
+			{
+				if (locPath.length() > locPath.length())
+				_matchedLocation = &locations[i];
+			}
+		}
+	}
+}
+
+bool	RequestHandler::isMethodAllowed() const
+{
+	if (_matchedLocation == NULL)
+		return (_request.getMethod() == HttpRequest::GET);
+	const std::vector<std::string>& allowedMethods = _matchedLocation->getMethods();
+	if (allowedMethods.empty())
+		return (true);
+	
+	std::string currentMethodStr;
+	HttpRequest::Method reqMethod = _request.getMethod();
+	if (reqMethod == HttpRequest::GET)
+		currentMethodStr = "GET";
+	else if (reqMethod == HttpRequest::POST)
+		currentMethodStr = "POST";
+	else if (reqMethod == HttpRequest::DELETE)
+		currentMethodStr = "DELETE";
+	else
+		return false;
+	for (size_t i = 0; i < allowedMethods.size(); ++i)
+	{
+		if (allowedMethods[i] == currentMethodStr)
+			return (true);
+	}
+	return (false);
+}
+
+void RequestHandler::resolvePhysicalPath()
+{
+	std::string rootPath;
+
+	if (_matchedLocation != NULL && !_matchedLocation->getRoot().empty())
+		rootPath = _matchedLocation->getRoot();
+	else
+		rootPath = "./www";
+	if (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
+		rootPath.erase(rootPath.length() - 1);
+	_resolvedPath = rootPath + _request.getUri();
+}
+
+std::string	RequestHandler::getMimeType(const std::string& path) const
+{
+	size_t dotPos = path.find_last_of('.');
+	if (dotPos != std::string::npos)
+	{
+		std::string ext = path.substr(dotPos);
+		if (ext == ".html" || ext == ".htm")
+			return "text/html";
+		if (ext == ".css")
+			return "text/css";
+		if (ext == ".js")
+			return "application/javascript";
+		if (ext == ".png")
+			return "image/png";
+		if (ext == ".jpg" || ext == ".jpeg")
+			return "image/jpeg";
+		if (ext == ".gif")
+			return "image/gif";
+		if (ext == ".txt")
+			return "text/plain";
+	}
+	return "application/octet-stream";
 }
