@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/20 16:58:24 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/21 00:45:55 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestHandler.hpp"
+#include "ServerConfig.hpp"
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -71,7 +72,7 @@ void	RequestHandler::handleGet()
 	if (S_ISDIR(fileStat.st_mode))
 	{
 		std::string	uri = _request.getUri();
-		if (uri.empty() || uri[uri.length() - 1] != '/');
+		if (uri.empty() || uri[uri.length() - 1] != '/')
 		{
 			_response.setStatusCode(301);
 			_response.setHeader("Location", uri + "/");
@@ -141,8 +142,11 @@ void	RequestHandler::matchLocation()
 									(uri[locPath.length()] == '/');
 			if (isDirectoryMatch)
 			{
-				if (locPath.length() > locPath.length())
-				_matchedLocation = &locations[i];
+				if (locPath.length() > maxMatchLength)
+				{
+					maxMatchLength = locPath.length();
+					_matchedLocation = &locations[i];
+				}
 			}
 		}
 	}
@@ -209,4 +213,108 @@ std::string	RequestHandler::getMimeType(const std::string& path) const
 			return "text/plain";
 	}
 	return "application/octet-stream";
+}
+
+void RequestHandler::handlePost()
+{
+	struct stat fileStat;
+	bool isDirectory = false;
+
+	if (stat(_resolvedPath.c_str(), &fileStat) == 0)
+	{
+		if (S_ISDIR(fileStat.st_mode))
+			isDirectory = true;
+	}
+
+	if (isDirectory)
+	{
+		handleError(403);
+		return ;
+	}
+
+	int fd = open(_resolvedPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
+	if (fd == -1)
+	{
+		handleError(403);
+		return ;
+	}
+
+	const std::string& body = _request.getBody();
+	ssize_t byteWritten = write(fd, body.c_str(), body.length());
+
+	close(fd);
+
+	if (byteWritten == -1 || static_cast<size_t>(byteWritten) != body.length())
+	{
+		handleError(500);
+		return ;
+	}
+
+	_response.setStatusCode(201);
+	_response.setHeader("Content-Type", "text/html");
+	_response.setHeader("Location", _request.getUri());
+	_response.setBody(
+			"<html>\r\n"
+			"<head><title>201 Created</title></head>\r\n"
+			"<body>\r\n"
+			"<h1>201 Created</h1>\r\n"
+			"<p>The file was successfully created/uploaded.</p>\r\n"
+			"</body>\r\n"
+			"</html>\r\n"
+	);
+}
+
+void RequestHandler::handleDelete()
+{
+	struct stat fileStat;
+
+	if (stat(_resolvedPath.c_str(), &fileStat) != 0)
+	{
+		if (errno == ENOENT)
+			handleError(404);
+		else
+			handleError(403);
+		return ;
+	}
+
+	if (S_ISDIR(fileStat.st_mode))
+	{
+		handleError(403);
+		return ;
+	}
+
+	if (unlink(_resolvedPath.c_str()) == 0)
+	{
+		_response.setStatusCode(204);
+		_response.setHeader("Content-Length", "0");
+	}
+	else
+		handleError(403);
+}
+
+void RequestHandler::handleError(int statusCode)
+{
+	_response.setStatusCode(statusCode);
+	std::string errorPagePath = _config.getErrorPages(statusCode);
+
+	if (!errorPagePath.empty())
+	{
+		struct stat fileState;
+		if (stat(errorPagePath.c_str(), &fileState) == 0 && !S_ISDIR(fileState.st_mode))
+		{
+			int fd = open(errorPagePath.c_str(), O_RDONLY);
+			if (fd != -1)
+			{
+				_response.setFile(fd, fileState.st_size);
+				_response.setHeader("Content-Type", getMimeType(errorPagePath));
+				return ;
+			}
+		}
+	}
+	_response.generateDefaultErrorPage();
+}
+
+void RequestHandler::handleAutoIndex(const std::string& path)
+{
+
 }

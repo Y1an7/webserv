@@ -73,9 +73,13 @@ const std::vector<std::string>& ServerConfig::getServerNames() const
 	return this->_serverNames;
 }
 
-const std::map<int, std::string>& ServerConfig::getErrorPages() const
+const std::string ServerConfig::getErrorPages(int statusCode) const
 {
-	return this->_errorPages;
+	std::map<int, std::string>::const_iterator it = _errorPages.find(statusCode);
+	
+	if (it != _errorPages.end())
+		return (it->second);
+	return ("");
 }
 
 size_t ServerConfig::getClientMaxBodySize() const
