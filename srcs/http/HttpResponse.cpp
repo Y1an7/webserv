@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 16:27:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/18 00:06:47 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/21 17:33:25 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,6 +173,11 @@ int	HttpResponse::getFileFd() const
 size_t	HttpResponse::getBytesSent() const
 {
 	return (_bytesSent);
+}
+
+const std::string& HttpResponse::getBody() const
+{
+	return (_body);
 }
 
 void	HttpResponse::addBytesSent(size_t bytes)

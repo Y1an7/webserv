@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 16:18:54 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/21 20:30:14 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 #include <iostream>
 #include <sstream>
 
-Client::Client(int fd, const ServerConfig& config) : _fd(fd), _config(config), _state(READING_REQUEST) {}
+Client::Client(int fd, const ServerConfig& config) : _fd(fd), _config(config), _state(READING_REQUEST), _isCgiRequest(false) {}
 
 Client::~Client() {}
 
@@ -129,6 +129,20 @@ bool	Client::writeData()
 
 void	Client::prepareHttpResponse()
 {
+	if (_isCgiRequest)
+	{
+		std::string cgiOutPut = _cgi.getOutput();
+		if (cgiOutPut.empty())
+		{
+			_responseBuffer = "HTTP/1.1 500 Internal Server Error\r\n"
+			                  "Content-Type: text/html\r\n"
+			                  "Content-Length: 53\r\n\r\n"
+			                  "<html><body><h1>500 CGI Execution Failed</h1></body></html>";
+		}
+		else
+			_responseBuffer = "HTTP/1.1 200 OK\r\n" + cgiOutPut;
+		return ;
+	}
 	RequestHandler handler(_request, _response, _config);
 	handler.execute();
 
@@ -156,16 +170,28 @@ bool	Client::checkAndInitCgi()
 		cgiReq.method = _request.getMethodStr();
 
 		size_t	questionMarkPos = uri.find('?');
+		std::string pathOnly;
 		if (questionMarkPos != std::string::npos)
 		{
-			cgiReq.scriptPath = "." + uri.substr(0, questionMarkPos);
+			pathOnly = uri.substr(0, questionMarkPos);
 			cgiReq.queryString = uri.substr(questionMarkPos + 1);
 		}
 		else
 		{
-			cgiReq.scriptPath = "." + uri;
+			pathOnly = uri;
 			cgiReq.queryString = "";
 		}
+
+		std::string rootDir = _config.getRoot();
+		if (rootDir.empty())
+			rootDir = "./www";
+		
+		if (!rootDir.empty() && rootDir[rootDir.length() - 1] == '/')
+			rootDir.erase(rootDir.length() - 1);
+		if (!pathOnly.empty() && pathOnly[0] != '/')
+			pathOnly = "/" + pathOnly;
+
+		cgiReq.scriptPath = rootDir + pathOnly;
 
 		cgiReq.httpBody = _request.getBody();
 		cgiReq.headerInfo = _request.getHeaders();

@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <cstdio>
 #include <cerrno>
 
 CgiHandler::CgiHandler() : _envp(NULL), _argv(NULL), _pid(-1)
@@ -198,7 +199,6 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 
 		execve(_argv[0], _argv, _envp);
 
-		std::cerr << "CGI execve failed!" << std::endl;
 		_freeArray(_envp);
 		_freeArray(_argv);
 		exit(1);
