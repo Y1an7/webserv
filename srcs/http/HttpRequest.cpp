@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/15 21:04:39 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/21 20:00:26 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,8 +47,6 @@ void	HttpRequest::feed(const std::string& data)
 				break ;
 			case PARSE_HEADERS:
 				keepParsing = parseHeaders();
-				if (keepParsing && (_state == PARSE_BODY || _state == PARSE_CHUNKED_BODY || _state == PARSE_COMPLETE))
-					keepParsing = false;
 				break ;
 			case PARSE_BODY:
 				keepParsing = parseNormalBody();
