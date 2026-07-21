@@ -6,13 +6,14 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/18 18:38:42 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/21 16:18:54 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Client.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "RequestHandler.hpp"
 #include <sys/socket.h>
 #include <unistd.h>
 #include <cerrno>
@@ -128,7 +129,14 @@ bool	Client::writeData()
 
 void	Client::prepareHttpResponse()
 {
-	
+	RequestHandler handler(_request, _response, _config);
+	handler.execute();
+
+	std::string headerStr = _response.buildAndGetHeaderString();
+	_responseBuffer = headerStr;
+
+	if (_response.getFileFd() == -1)
+		_responseBuffer += _response.getBody();
 }
 
 
