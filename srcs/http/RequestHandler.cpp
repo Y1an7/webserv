@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 00:45:55 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/21 11:13:00 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -316,5 +316,53 @@ void RequestHandler::handleError(int statusCode)
 
 void RequestHandler::handleAutoIndex(const std::string& path)
 {
+	DIR* dir = opendir(path.c_str());
+	if (dir == NULL)
+	{
+		handleError(403);
+		return ;
+	}
 
+	std::string uri = _request.getUri();
+	std::string html =
+			"<html>\r\n"
+			"<head><title>Index of " + uri + "</title></head>\r\n"
+			"<body style=\"font-family: Arial, sans-serif;\">\r\n"
+			"<h1>Index of " + uri + "</h1>\r\n"
+			"<hr>\r\n"
+			"<pre>\r\n";
+	
+	struct dirent* entry;
+	while ((entry = readdir(dir)) != NULL)
+	{
+		std::string filename = entry->d_name;
+
+		if (filename == ".")
+			continue ;
+		
+		std::string fullPath = path;
+		if (fullPath[fullPath.length() - 1] != '/')
+			fullPath += "/";
+		fullPath += filename;
+
+		struct stat fileStat;
+		bool isDir = false;
+		if (stat(fullPath.c_str(), &fileStat) == 0)
+		{
+			if (S_ISDIR(fileStat.st_mode))
+				isDir = true;
+		}
+
+		std::string displayName = filename;
+		if (isDir)
+			displayName += "/";
+
+		html += "<a href=\"" + displayName + "\">" + displayName + "</a>\r\n";
+	}
+	closedir(dir);
+	html += "</pre>\r\n<hr>\r\n</body>\r\n</html>\r\n";
+
+	_response.setStatusCode(200);
+	_response.setHeader("Content-Type", "text/html");
+	_response.setBody(html);
 }
