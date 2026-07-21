@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 18:57:26 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/22 00:41:54 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,32 +82,30 @@ void	Server::run()
 			uint32_t	events = _events[i].events;
 
 			
-			//case 1: error
+			//case 1: CGI fd handling
 			if (events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 			{
 				if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
 				{
-					removeClient((triggeredFd));
+					handleCgiRead(triggeredFd);
+					continue ;
+				}
+				if (_cgiWriteFds.find(triggeredFd) != _cgiWriteFds.end())
+				{
+					handleCgiWrite(triggeredFd);
 					continue ;
 				}
 			}
 
-			//cgi fd handling
-			if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
+			//case 2: fatal network socket errors
+			if (events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 			{
-				if (events & (EPOLLIN | EPOLLERR | EPOLLHUP))
-					handleCgiRead(triggeredFd);
-				continue;
-			}
-			if (_cgiWriteFds.find(triggeredFd) != _cgiWriteFds.end())
-			{
-				if (events & (EPOLLIN | EPOLLERR | EPOLLHUP))
-					handleCgiWrite(triggeredFd);
-				continue;
+				if (_clients.find(triggeredFd) != _clients.end())
+					removeClient(triggeredFd);
+				continue ;
 			}
 
-
-			//case 2: if there is new connection
+			//case 3: if there is new connection
 			bool			isNewConnection = false;
 			ServerSocket*	matchedServer = NULL;
 			
@@ -123,7 +121,7 @@ void	Server::run()
 			if (isNewConnection)
 				acceptNewClient(matchedServer);
 
-			//case 3: (based on case 2) if the trigger is the old client send the request, we can response now
+			//case 4: client read/write
 			else
 			{
 				if (events & EPOLLIN)
@@ -245,6 +243,25 @@ void	Server::removeClient(int clientFd)
 	std::map<int, Client*>::iterator it = _clients.find(clientFd);
 	if (it != _clients.end())
 	{
+		Client* client = it->second;
+
+		if (client->getState() == Client::HANDLING_CGI)
+		{
+			int readFd = client->getCgiHandler().getReadFd();
+			int writeFd = client->getCgiHandler().getWriteFd();
+
+			if (readFd != -1)
+			{
+				epoll_ctl(_epollFd, EPOLL_CTL_DEL, readFd, NULL);
+				_cgiReadFds.erase(readFd);
+			}
+			if (writeFd != -1)
+			{
+				epoll_ctl(_epollFd, EPOLL_CTL_DEL, writeFd, NULL);
+				_cgiWriteFds.erase(writeFd);
+			}
+			client->getCgiHandler().killCgi();
+		}
 		delete it->second;
 		_clients.erase(it);
 	}

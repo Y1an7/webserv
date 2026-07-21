@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 16:27:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 17:33:25 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/22 00:02:50 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -226,7 +226,7 @@ const std::string& HttpResponse::buildAndGetHeaderString()
 {
 	if (getHeader("Server").empty())
 		setHeader("Server", "webserv/1.1");
-	if (getHeader("Data").empty())
+	if (getHeader("Date").empty())
 		setHeader("Date", getCurrentDate());
 	if (_statusMessage.empty())
 		_statusMessage = getDefaultStatusMessage(_statusCode);

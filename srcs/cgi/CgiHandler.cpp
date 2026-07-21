@@ -185,6 +185,8 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	_pid = fork();
 	if (_pid == -1)
 	{
+		_freeArray(_envp); _envp = NULL;
+		_freeArray(_argv); _argv = NULL;
 		_state = CGI_ERROR;
 		return false;
 	}
@@ -228,7 +230,7 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 
 bool CgiHandler::writeToCgi()
 {
-	if (_state != CGI_WRITING || _pipe_in[1] == -1)
+	if (_pipe_in[1] == -1)
 		return false;
 	
 	int bytesWritten = write(_pipe_in[1], _inputBuffer.c_str(), _inputBuffer.length());
@@ -258,9 +260,9 @@ bool CgiHandler::writeToCgi()
 
 bool	CgiHandler::readFromCgi()
 {
-	if (_state != CGI_READING || _pipe_out[0] == -1)
+	if (_pipe_out[0] == -1)
 		return false;
-	
+
 	char buffer[4096];
 	int bytesRead = read(_pipe_out[0], buffer, sizeof(buffer) - 1);
 
