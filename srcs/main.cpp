@@ -60,10 +60,18 @@ int main(int argc, char **argv)
 		for (size_t i = 0; i < serverConfigs.size(); ++i)
 		{
 			ServerSocket* newSocket = new ServerSocket(serverConfigs[i]);
-			newSocket->init();
-			g_server->addServerSocket(newSocket);
-			std::cout << "✅ Listening on Host: " << serverConfigs[i].getHost()
+			try
+			{
+				newSocket->init();
+				g_server->addServerSocket(newSocket);
+				std::cout << "✅ Listening on Host: " << serverConfigs[i].getHost()
 					<< "Port: " << serverConfigs[i].getPort() << std::endl;
+			}
+			catch (const std::exception& e)
+			{
+				delete newSocket;
+				throw ;
+			}
 		}
 
 		//5.initialize epoll and run the main event loop
