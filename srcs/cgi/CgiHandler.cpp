@@ -115,9 +115,13 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 {
 	std::vector<std::string>	envVars;
 
+	envVars.push_back("GATEWAY_INTERFACE=CGI/1.1");
+	envVars.push_back("SERVER_PROTOCOL=HTTP/1.1");
+	envVars.push_back("SERVER_SOFTWARE=webserv/1.1");
 	envVars.push_back("REQUEST_METHOD=" + req.method);
 	envVars.push_back("QUERY_STRING=" + req.queryString);
 	envVars.push_back("SCRIPT_FILENAME=" + req.scriptPath);
+	envVars.push_back("REDIRECT_STATUS=200");
 
 	if (!req.httpBody.empty())
 	{
