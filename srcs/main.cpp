@@ -1,51 +1,84 @@
 #include "incs/config/ConfigParser.hpp"
-#include "incs/network/ServerSocket.hpp" // Adjust path if needed
+#include "incs/network/Server.hpp"
+#include "incs/network/ServerSocket.hpp"
 #include <iostream>
-#include <unistd.h>
+#include <exception>
+#include <csignal>
+#include <cstdlib>
+#include <vector>
+
+
+Server* g_server = NULL;
+
+
+void handle_signal(int sig)
+{
+	(void)sig;
+	std::cout << "\n[SIGINT/SIGQUIT] Shutting down webserv gracefully..." << std::endl;
+
+	if (g_server)
+	{
+		delete g_server;
+		g_server = NULL;
+	}
+	exit(0);
+}
+
 
 int main(int argc, char **argv)
 {
-	if (argc != 2)
+	//1. validate arg
+	if (argc > 2)
 	{
 		std::cerr << "Usage: ./webserv [config_file]" << std::endl;
 		return 1;
 	}
 
+	std::string ConfigFile = (argc == 2) ? argv[1] : "default.conf";
+
+	//2.register signal handlers
+	signal(SIGINT, handle_signal);
+	signal(SIGQUIT, handle_signal);
+
 	try
 	{
-		// 1. Parse the data
+		// 3. Parse the config
+		std::cout << "Parsing configuration file: " << std::endl;
 		ConfigParser parser;
-		parser.tokenize(argv[1]);
+		parser.tokenize(ConfigFile);
 		parser.parse();
 
-		std::cout << "Parser complete. Found " << parser.getServers().size() << " servers." << std::endl;
-
-		// 2. Extract the first server block
-		const ServerConfig& firstConfig = parser.getServers()[0];
-
-		// 3. Connect to socket
-		ServerSocket testSocket(firstConfig);
-		testSocket.init();
-		
-		std::cout << "Success! Listening on port: " << firstConfig.getPort() << std::endl;
-		std::cout << "Open another terminal and type: curl -v http://localhost:" << firstConfig.getPort() << std::endl;
-
-		// 4. Dummy accept loop for testing
-		// Note: Because ServerSocket uses O_NONBLOCK, this will spin fast
-		while (true)
+		const std::vector<ServerConfig>& serverConfigs = parser.getServers();
+		if (serverConfigs.empty())
 		{
-			int client_fd = testSocket.acceptConnect();
-			if (client_fd > 0)
-			{
-				std::cout << "✅ BOOM! Connection accepted on FD: " << client_fd << std::endl;
-				close(client_fd); // Close it immediately for this test
-			}
-			usleep(10000); // Sleep for 10ms to prevent 100% CPU usage
+			std::cerr << "Error: No valid server blocks found in configuration file." << std::endl;
+			return 1;
 		}
+		// 4.initialize the main server structure
+		g_server = new Server();
+
+		for (size_t i = 0; i < serverConfigs.size(); ++i)
+		{
+			ServerSocket* newSocket = new ServerSocket(serverConfigs[i]);
+			newSocket->init();
+			g_server->addServerSocket(newSocket);
+			std::cout << "✅ Listening on Host: " << serverConfigs[i].getHost()
+					<< "Port: " << serverConfigs[i].getPort() << std::endl;
+		}
+
+		//5.initialize epoll and run the main event loop
+		g_server->initEpoll();
+		g_server->run();
 	}
+
 	catch (const std::exception& e)
 	{
-		std::cerr << "Fatal Error: " << e.what() << std::endl;
+		std::cerr << "\n❌ Fatal Exception: " << e.what() << std::endl;
+		if (g_server)
+		{
+			delete g_server;
+			g_server = NULL;
+		}
 		return 1;
 	}
 	return 0;

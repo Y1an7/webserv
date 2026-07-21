@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/18 16:32:25 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/21 18:57:26 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,7 +68,7 @@ void	Server::run()
 	
 	while (true)
 	{
-		int	numEvents = epoll_wait(_epollFd, _events, MAX_EVENTS, -1);
+		int	numEvents = epoll_wait(_epollFd, _events, MAX_EVENTS, 1000);
 		if (numEvents == -1)
 		{
 			if (errno == EINTR)
@@ -86,25 +86,22 @@ void	Server::run()
 			if (events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
 			{
 				if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
-					cleanupCgiFds(triggeredFd, true);
-				else if (_cgiWriteFds.find(triggeredFd) != _cgiWriteFds.end())
-					cleanupCgiFds(triggeredFd, false);
-				else
-					removeClient(triggeredFd);
-				continue ;
+				{
+					removeClient((triggeredFd));
+					continue ;
+				}
 			}
-
 
 			//cgi fd handling
 			if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
 			{
-				if (events & EPOLLIN)
+				if (events & (EPOLLIN | EPOLLERR | EPOLLHUP))
 					handleCgiRead(triggeredFd);
 				continue;
 			}
 			if (_cgiWriteFds.find(triggeredFd) != _cgiWriteFds.end())
 			{
-				if (events & EPOLLOUT)
+				if (events & (EPOLLIN | EPOLLERR | EPOLLHUP))
 					handleCgiWrite(triggeredFd);
 				continue;
 			}
@@ -133,6 +130,24 @@ void	Server::run()
 					handleClientRead(triggeredFd);
 				if ((events & EPOLLOUT) && _clients.find(triggeredFd) != _clients.end())
 					handleClientWrite(triggeredFd);
+			}
+		}
+
+		for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		{
+			Client* client = it->second;
+			if (client->getState() == Client::HANDLING_CGI)
+			{
+				if (client->getCgiHandler().checkTimeout(5))
+				{
+					client->setState(Client::WRITING_RESPONSE);
+					client->prepareHttpResponse();
+					struct epoll_event ev;
+					std::memset(&ev, 0, sizeof(ev));
+					ev.events = EPOLLOUT | EPOLLRDHUP;
+					ev.data.fd = client->getFd();
+					epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
+				}
 			}
 		}
 	}

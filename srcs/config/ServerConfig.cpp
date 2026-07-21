@@ -38,6 +38,11 @@ void	ServerConfig::setHost(const std::string& host)
 	this->_host = host;
 }
 
+void	ServerConfig::setRoot(const std::string& root)
+{
+	this->_root = root;
+}
+
 void	ServerConfig::addServerNames(const std::string& serverNames)
 {
 	this->_serverNames.push_back(serverNames);
@@ -66,6 +71,11 @@ int	ServerConfig::getPort() const
 const std::string& ServerConfig::getHost() const
 {
 	return this->_host;
+}
+
+const std::string& ServerConfig::getRoot() const
+{
+	return this->_root;
 }
 
 const std::vector<std::string>& ServerConfig::getServerNames() const
