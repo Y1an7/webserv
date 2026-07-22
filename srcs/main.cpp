@@ -27,6 +27,7 @@ void handle_signal(int sig)
 
 int main(int argc, char **argv)
 {
+	signal(SIGPIPE, SIG_IGN);
 	//1. validate arg
 	if (argc > 2)
 	{

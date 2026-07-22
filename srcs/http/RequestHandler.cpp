@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 11:13:00 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/23 00:55:57 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
+#include <fstream>
 
 RequestHandler::RequestHandler(const HttpRequest& req, HttpResponse& res, const ServerConfig& config)
 	: _request(req), _response(res), _config(config), _matchedLocation(NULL) {}
@@ -186,10 +187,21 @@ void RequestHandler::resolvePhysicalPath()
 		rootPath = _matchedLocation->getRoot();
 	else
 		rootPath = "./www";
-	if (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
+
+	while (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
 		rootPath.erase(rootPath.length() - 1);
 	_resolvedPath = rootPath + _request.getUri();
+
+	while (!_resolvedPath.empty() &&
+			(_resolvedPath[_resolvedPath.length() - 1] == '\r' || 
+			_resolvedPath[_resolvedPath.length() - 1] == '\n' || 
+			_resolvedPath[_resolvedPath.length() - 1] == ' '))
+	{
+		_resolvedPath.erase(_resolvedPath.length() - 1);
+	}
+
 }
+
 
 std::string	RequestHandler::getMimeType(const std::string& path) const
 {
@@ -268,6 +280,7 @@ void RequestHandler::handleDelete()
 {
 	struct stat fileStat;
 
+	//verify existence and initial access permissions
 	if (stat(_resolvedPath.c_str(), &fileStat) != 0)
 	{
 		if (errno == ENOENT)
@@ -277,19 +290,27 @@ void RequestHandler::handleDelete()
 		return ;
 	}
 
+	//prevent directory deletion (unlinked is for files only)
 	if (S_ISDIR(fileStat.st_mode))
 	{
 		handleError(403);
 		return ;
 	}
 
+	//execute system deletion
 	if (unlink(_resolvedPath.c_str()) == 0)
 	{
 		_response.setStatusCode(204);
 		_response.setHeader("Content-Length", "0");
+		_response.setBody("");
 	}
 	else
-		handleError(403);
+	{
+		if (errno == EACCES || errno == EPERM)
+			handleError(403);
+		else
+			handleError(500);
+	}
 }
 
 void RequestHandler::handleError(int statusCode)

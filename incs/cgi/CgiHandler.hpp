@@ -2,7 +2,7 @@
 # define CGIHANDLER_HPP
 
 # include <iostream>
-# include <string>
+# include <cstring>
 # include <map>
 # include <vector>
 # include <sys/types.h>

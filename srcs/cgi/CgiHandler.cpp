@@ -6,6 +6,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cerrno>
+#include <iostream>
+#include <stdlib.h>
+#include <errno.h>
 
 CgiHandler::CgiHandler() : _envp(NULL), _argv(NULL), _pid(-1)
 {
@@ -124,20 +127,28 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	envVars.push_back("SCRIPT_FILENAME=" + req.scriptPath);
 	envVars.push_back("REDIRECT_STATUS=200");
 
-	if (!req.httpBody.empty())
+	if (req.headerInfo.find("Content-Length") != req.headerInfo.end())
+		envVars.push_back("CONTENT_LENGTH=" + req.headerInfo.at("Content-Length"));
+	else if (!req.httpBody.empty())
 	{
 		std::stringstream ss;
 		ss << req.httpBody.length();
 		envVars.push_back("CONTENT_LENGTH=" + ss.str());
 	}
-	//if there is a length, the cgi script needs to know its length
+
+	if (req.headerInfo.find("Content-Type") != req.headerInfo.end())
+		envVars.push_back("CONTENT-TYPE=" + req.headerInfo.at("Content-Type"));
 
 	std::map<std::string, std::string>::const_iterator it = req.headerInfo.begin();
 	
 	while (it != req.headerInfo.end())
 	{
-		std::string	cgiKey = "HTTP_" + formattedCgiHeaderKey(it->first);
-		envVars.push_back(cgiKey + "=" + it->second);
+		std::string key = it->first;
+		if (key != "Content-Length" && key != "Content-Type")
+		{
+			std::string	cgiKey = "HTTP_" + formattedCgiHeaderKey(it->first);
+			envVars.push_back(cgiKey + "=" + it->second);
+		}
 		++it;
 	}
 	//it->first grabs the Map's Key, it->second grabs the Map's Value
@@ -170,8 +181,16 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	_inputBuffer = req.httpBody;
 	_outputBuffer = "";
 
-	if (pipe(_pipe_in) == -1 || pipe(_pipe_out) == -1)
+	if (pipe(_pipe_in) == -1)
 	{
+		_state = CGI_ERROR;
+		return false;
+	} 
+	
+	if (pipe(_pipe_out) == -1)
+	{
+		close(_pipe_in[0]);
+		close(_pipe_in[1]);
 		_state = CGI_ERROR;
 		return false;
 	}
@@ -185,6 +204,8 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	_pid = fork();
 	if (_pid == -1)
 	{
+		close(_pipe_in[0]); close(_pipe_in[1]);
+		close(_pipe_out[0]); close(_pipe_out[1]);
 		_freeArray(_envp); _envp = NULL;
 		_freeArray(_argv); _argv = NULL;
 		_state = CGI_ERROR;
@@ -201,9 +222,11 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 
 		execve(_argv[0], _argv, _envp);
 
+		std::cerr << "[CGI Error] execve failed for " << _argv[0]
+				<< ": " << strerror(errno) << std::endl;
 		_freeArray(_envp);
 		_freeArray(_argv);
-		exit(1);
+		_exit(1);
 	}
 
 	else
@@ -234,7 +257,6 @@ bool CgiHandler::writeToCgi()
 		return false;
 	
 	int bytesWritten = write(_pipe_in[1], _inputBuffer.c_str(), _inputBuffer.length());
-
 	if (bytesWritten > 0)
 	{
 		_inputBuffer.erase(0, bytesWritten);
