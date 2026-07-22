@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:37 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/15 21:03:57 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/22 19:39:17 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,8 @@ class HttpRequest
 		
 		void	feed(const std::string& data); //core interface
 		void	reset(); // reset
+		
+		void										setMaxBodySize(size_t size);
 		
 		ParseState									getState() const;
 		int											getStatusCode() const;
