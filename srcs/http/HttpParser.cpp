@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/12 18:13:00 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/13 18:09:58 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/22 19:47:22 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,6 +126,12 @@ bool	HttpRequest::parseHeaders()
 					}
 				}
 				_contentLength = std::strtol(_headers["content-length"].c_str(), NULL, 10);
+				if (_contentLength > _maxBodySize)
+				{
+					_statusCode = 413;
+					_state = PARSE_ERROR;
+					return (false);
+				}
 				if (_contentLength > 0)
 					_state = PARSE_BODY;
 				else

@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 20:00:26 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/22 19:41:21 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ void	HttpRequest::trim(std::string& str)
 	str = str.substr(start, end - start + 1);
 }
 
-HttpRequest::HttpRequest()
+HttpRequest::HttpRequest() : _maxBodySize(1048576)
 {
 	reset();
 }
@@ -70,11 +70,16 @@ void	HttpRequest::reset()
 	_version.clear();
 	_headers.clear();
 	_body.clear();
-	_maxBodySize = 1048576; //1MB
 	_contentLength = 0;
 	_isChunked = false;
 	_chunkSize = -1;
 }
+
+void	HttpRequest::setMaxBodySize(size_t size)
+{
+	_maxBodySize = size;
+}
+
 HttpRequest::ParseState	HttpRequest::getState() const
 {
 	return	(_state);

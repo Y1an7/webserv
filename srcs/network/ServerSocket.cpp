@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerSocket.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 16:50:43 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 16:30:54 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/22 19:57:38 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,36 +45,40 @@ void	ServerSocket::init()
 
 	if (getaddrinfo(_config.getHost().c_str(), portStr.c_str(), &hints, &res) != 0)
 		throw SocketException(std::string("Failed getaddrinfo"));
+	struct addrinfo	*p;
 	
-	_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (_fd < 0)
+	for (p = res; p != NULL; p = p->ai_next)
 	{
-		freeaddrinfo(res);
-		throw SocketException("Failed to create socket");
-	}
-	
-	int	opt = 1;
-	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-	{
-		freeaddrinfo(res);
+		_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+		if (_fd < 0)
+			continue ;
+		int	opt = 1;
+		if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+		{
+			close(_fd);
+			freeaddrinfo(res);
+			throw SocketException("Failed to set socket option SO_REUSEADDR");
+		}
+		
+		if (fcntl(_fd, F_SETFL, O_NONBLOCK) < 0)
+		{
+			close(_fd);
+			freeaddrinfo(res);
+			throw SocketException("Failed to set socket non-blocking mode");
+		}
+		
+		if (bind(_fd, p->ai_addr, p->ai_addrlen) == 0)
+			break ;
 		close(_fd);
-		throw SocketException("Failed to set socket option SO_REUSEADDR");
 	}
-	
-	if (fcntl(_fd, F_SETFL, O_NONBLOCK) < 0)
+	if (p == NULL)
 	{
 		freeaddrinfo(res);
-		close(_fd);
-		throw SocketException("Failed to set socket non-blocking mode");
+		throw SocketException("Failed to bind to any address");
 	}
 	
 	_address = *reinterpret_cast<struct sockaddr_in*>(res->ai_addr);
 	freeaddrinfo(res);
-	if (bind(_fd, (struct sockaddr*)&_address, sizeof(_address)) < 0)
-	{
-		close(_fd);
-		throw SocketException("Failed to bind socket to port");
-	}
 	if (listen(_fd, SOMAXCONN) < 0)
 	{
 		close(_fd);

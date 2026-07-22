@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/21 20:30:14 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/22 19:42:58 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,11 @@
 #include <iostream>
 #include <sstream>
 
-Client::Client(int fd, const ServerConfig& config) : _fd(fd), _config(config), _state(READING_REQUEST), _isCgiRequest(false) {}
+Client::Client(int fd, const ServerConfig& config) : _fd(fd), _config(config), _state(READING_REQUEST), _isCgiRequest(false)
+{
+	updateLastActivity();
+	_request.setMaxBodySize(_config.getClientMaxBodySize());
+}
 
 Client::~Client() {}
 
@@ -55,6 +59,7 @@ bool	Client::readData()
 	
 	if (bytesRead > 0)
 	{
+		updateLastActivity();
 		_request.feed(std::string(buffer, bytesRead));
 		HttpRequest::ParseState reqState = _request.getState();
 		if (reqState == HttpRequest::PARSE_COMPLETE)
@@ -97,6 +102,7 @@ bool	Client::writeData()
 	ssize_t	bytesSend = send(_fd, _responseBuffer.c_str(), _responseBuffer.length(), 0);
 	if (bytesSend > 0)
 	{
+		updateLastActivity();
 		_responseBuffer.erase(0, bytesSend);
 		if (_responseBuffer.empty())
 		{
@@ -108,7 +114,9 @@ bool	Client::writeData()
 			}
 			_request.reset();
 			_response.reset();
+			_request.setMaxBodySize(_config.getClientMaxBodySize());
 			_state = READING_REQUEST;
+			updateLastActivity();
 			return (true);
 		}
 		else
@@ -201,4 +209,38 @@ bool	Client::checkAndInitCgi()
 		return (true);
 	}
 	return (false);
+}
+
+void	Client::updateLastActivity()
+{
+	_lastActivity = time(NULL);
+}
+
+bool	Client::hasTimedOut(time_t timeoutSeconds) const
+{
+	time_t	currentTime = time(NULL);
+	return ((currentTime - _lastActivity) > timeoutSeconds);
+}
+
+void	Client::handleTimeout()
+{
+	if (_state == READING_REQUEST)
+	{
+		_response.setStatusCode(408);
+		_response.generateDefaultErrorPage();
+	}
+	else if (_state == HANDLING_CGI)
+	{
+		_cgi.killCgi();
+		_response.setStatusCode(504);
+		_response.generateDefaultErrorPage();
+	}
+	else
+	{
+		_state = CLOSE_CONNECTION;
+		return ;
+	}
+	
+	_response.generateDefaultErrorPage();
+	_responseBuffer = _response.buildAndGetHeaderString() + _response.getBody();
 }
