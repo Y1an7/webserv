@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/16 20:19:38 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/22 18:46:29 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 #include "HttpResponse.hpp"
 #include "CgiHandler.hpp"
 #include <string>
+#include <ctime>
 
 class Client
 {
@@ -44,6 +45,8 @@ class Client
 		CgiHandler			_cgi;
 		bool				_isCgiRequest;
 
+		time_t				_lastActivity;
+
 	public:
 		Client(int fd, const ServerConfig& config);
 		~Client();
@@ -61,6 +64,10 @@ class Client
 		bool				checkAndInitCgi();
 
 		void				prepareHttpResponse();
+
+		void				updateLastActivity();
+		bool				hasTimedOut(time_t timeoutSeconds) const;
+		void				handleTimeout();
 };
 
 #endif

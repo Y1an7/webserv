@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 16:27:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 00:02:50 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/22 19:33:12 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,9 +83,11 @@ std::string	HttpResponse::getDefaultStatusMessage(int code) const
 		case 403: return "Forbidden";
 		case 404: return "Not Found";
 		case 405: return "Method Not Allowed";
+		case 408: return "Request Timeout";
 		case 413: return "Payload Too Large";
 		case 500: return "Internal Server Error";
 		case 501: return "Not Implemented";
+		case 504: return "Gateway Timeout";
 		case 505: return "HTTP Version Not Supported";
 		default:  return "Unknown Status";
 	}
