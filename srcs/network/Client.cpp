@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
 /*   Updated: 2026/07/23 00:57:18 by rozhang          ###   ########.fr       */
@@ -113,7 +113,6 @@ bool	Client::writeData()
 			}
 			_request.reset();
 			_response.reset();
-			_isCgiRequest = false;
 			_request.setMaxBodySize(_config.getClientMaxBodySize());
 			_state = READING_REQUEST;
 			updateLastActivity();
@@ -243,8 +242,6 @@ bool	Client::hasTimedOut(time_t timeoutSeconds) const
 
 void	Client::handleTimeout()
 {
-	_response.reset();
-
 	if (_state == READING_REQUEST)
 	{
 		_response.setStatusCode(408);
