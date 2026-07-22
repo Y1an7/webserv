@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 19:42:58 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/23 00:57:18 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,6 @@ bool	Client::readData()
 			else
 			{
 				_state = WRITING_RESPONSE;
-				prepareHttpResponse();
 			}
 		}
 		else if (reqState == HttpRequest::PARSE_ERROR)
@@ -114,6 +113,7 @@ bool	Client::writeData()
 			}
 			_request.reset();
 			_response.reset();
+			_isCgiRequest = false;
 			_request.setMaxBodySize(_config.getClientMaxBodySize());
 			_state = READING_REQUEST;
 			updateLastActivity();
@@ -142,13 +142,32 @@ void	Client::prepareHttpResponse()
 		std::string cgiOutPut = _cgi.getOutput();
 		if (cgiOutPut.empty())
 		{
-			_responseBuffer = "HTTP/1.1 500 Internal Server Error\r\n"
-			                  "Content-Type: text/html\r\n"
-			                  "Content-Length: 53\r\n\r\n"
-			                  "<html><body><h1>500 CGI Execution Failed</h1></body></html>";
+			std::string body = "<html><body><h1>500 CGI Execution Failed</h1></body></html>";
+			std::stringstream ss;
+			ss << "HTTP/1.1 500 Internal Server Error\r\n"
+				<< "Content-Type: text/html\r\n"
+				<< "Content-Length: " << body.length() << "\r\n\r\n"
+				<< body;
+			_responseBuffer = ss.str();
 		}
 		else
-			_responseBuffer = "HTTP/1.1 200 OK\r\n" + cgiOutPut;
+		{
+			size_t headerEnd = cgiOutPut.find("\r\n\r\n");
+			if (headerEnd != std::string::npos)
+			{
+				std::string cgiHeaders = cgiOutPut.substr(0, headerEnd);
+				std::string cgiBody = cgiOutPut.substr(headerEnd + 4);
+				
+				std::stringstream ss;
+				ss << "HTTP/1.1 200 OK\r\n"
+					<< cgiHeaders << "\r\n"
+					<< "Content-Length: " << cgiBody.length() << "\r\n\r\n"
+					<< cgiBody;
+				_responseBuffer = ss.str();
+			}
+			else
+				_responseBuffer = "HTTP/1.1 200 OK\r\n\r\n" + cgiOutPut;
+		}
 		return ;
 	}
 	RequestHandler handler(_request, _response, _config);
@@ -157,7 +176,7 @@ void	Client::prepareHttpResponse()
 	std::string headerStr = _response.buildAndGetHeaderString();
 	_responseBuffer = headerStr;
 
-	if (_response.getFileFd() == -1)
+	if (_response.getFileFd() == -1 && _response.getStatusCode() != 204)
 		_responseBuffer += _response.getBody();
 }
 
@@ -224,6 +243,8 @@ bool	Client::hasTimedOut(time_t timeoutSeconds) const
 
 void	Client::handleTimeout()
 {
+	_response.reset();
+
 	if (_state == READING_REQUEST)
 	{
 		_response.setStatusCode(408);
@@ -243,4 +264,5 @@ void	Client::handleTimeout()
 	
 	_response.generateDefaultErrorPage();
 	_responseBuffer = _response.buildAndGetHeaderString() + _response.getBody();
+	_state = WRITING_RESPONSE;
 }

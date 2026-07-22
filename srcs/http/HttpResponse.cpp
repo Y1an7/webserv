@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 16:27:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 19:33:12 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/22 23:25:03 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,8 +230,8 @@ const std::string& HttpResponse::buildAndGetHeaderString()
 		setHeader("Server", "webserv/1.1");
 	if (getHeader("Date").empty())
 		setHeader("Date", getCurrentDate());
-	if (_statusMessage.empty())
-		_statusMessage = getDefaultStatusMessage(_statusCode);
+
+	_statusMessage = getDefaultStatusMessage(_statusCode);
 	
 	std::stringstream	ss;
 	ss << _version << " " << _statusCode << " " <<  _statusMessage << "\r\n";
