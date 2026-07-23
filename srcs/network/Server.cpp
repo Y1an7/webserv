@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 23:07:43 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/23 11:08:55 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,23 +130,28 @@ void	Server::run()
 			}
 		}
 
+		std::vector<int> staleClient;
+
 		for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			Client* client = it->second;
-			if (client->getState() == Client::HANDLING_CGI)
+			if (client->hasTimedOut(10))
 			{
-				if (client->getCgiHandler().checkTimeout(5))
-				{
-					client->setState(Client::WRITING_RESPONSE);
-					client->prepareHttpResponse();
-					struct epoll_event ev;
-					std::memset(&ev, 0, sizeof(ev));
-					ev.events = EPOLLOUT | EPOLLRDHUP;
-					ev.data.fd = client->getFd();
-					epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
-				}
+				client->handleTimeout();
+				if (client->getState() == Client::CLOSE_CONNECTION)
+					staleClient.push_back(client->getFd());
+				else if (client->getState() == Client::WRITING_RESPONSE)
+					{
+						struct epoll_event ev;
+						std::memset(&ev, 0, sizeof(ev));
+						ev.events = EPOLLOUT | EPOLLRDHUP;
+						ev.data.fd = client->getFd();
+						epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
+					}
 			}
 		}
+		for (size_t i = 0; i < staleClient.size(); ++i)
+			removeClient(staleClient[i]);
 	}
 }
 
