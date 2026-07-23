@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/23 00:57:18 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/23 10:43:35 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -188,6 +188,8 @@ CgiHandler& Client::getCgiHandler()
 
 bool	Client::checkAndInitCgi()
 {
+	_isCgiRequest = false;
+	
 	std::string uri = _request.getUri();
 	if (uri.find(".py") != std::string::npos || uri.find(".php") != std::string::npos)
 	{
