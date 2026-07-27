@@ -16,6 +16,15 @@ private:
 	size_t						_pos;
 	std::vector<ServerConfig>	_servers; //for store parsing result
 
+	void	parseServerBlock();
+	void	parseListen(ServerConfig& server);
+	void	parseHost(ServerConfig& server);
+	void	parseRoot(ServerConfig& server);
+	void	parseErrorPage(ServerConfig& server);
+	void	parseServerName(ServerConfig& server);
+	void	parseClientMaxBodySize(ServerConfig& server);
+	void	parseLocationBlock(ServerConfig& server);
+
 public:
 	ConfigParser();
 	ConfigParser(const ConfigParser& other);
@@ -24,14 +33,6 @@ public:
 
 	void	tokenize(const std::string& filename);
 	void	parse();
-	void	parseServerBlock();
-	void	parseListen(ServerConfig& server);
-	void	parseHost(ServerConfig& server);
-	void	parseErrorPage(ServerConfig& server);
-	void	parseServerName(ServerConfig& server);
-	void	parseClientMaxBodySize(ServerConfig& server);
-	void	parseLocationBlock(ServerConfig& server);
-
 	const std::vector<ServerConfig>& getServers() const;
 
 	class SyntaxException : public std::exception

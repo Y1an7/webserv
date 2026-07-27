@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/23 10:43:35 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/27 11:04:11 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,30 +96,55 @@ bool	Client::readData()
 bool	Client::writeData()
 {
 	if (_responseBuffer.empty())
-		return (false);
+	{
+		int fd = _response.getFileFd();
+		if (fd != -1)
+		{
+			char buf[8192]; //8kb
+			ssize_t bytesRead = read(fd, buf, sizeof(buf));
+
+			if (bytesRead > 0)
+				_responseBuffer.append(buf, bytesRead);
+			else if (bytesRead == 0)
+			{
+				close(fd);
+				_response.setFile(-1, 0);
+			}
+			else
+			{
+				std::cerr << "Error reading file FD: " << fd << std::endl;
+				close(fd);
+				_response.setFile(-1, 0);
+				_state = CLOSE_CONNECTION;
+				return (false);
+			}
+				
+		}
+	}
+
+	if (_responseBuffer.empty())
+	{
+		std::string reqConnection = _request.getHeader("Connection");
+		if (reqConnection == "close")
+		{
+			_state = CLOSE_CONNECTION;
+			return (false);
+		}
+
+		_request.reset();
+		_response.reset();
+		_request.setMaxBodySize(_config.getClientMaxBodySize());
+		_state = READING_REQUEST;
+		updateLastActivity();
+		return (true);
+	}
 
 	ssize_t	bytesSend = send(_fd, _responseBuffer.c_str(), _responseBuffer.length(), 0);
 	if (bytesSend > 0)
 	{
 		updateLastActivity();
 		_responseBuffer.erase(0, bytesSend);
-		if (_responseBuffer.empty())
-		{
-			std::string reqConnection = _request.getHeader("connection");
-			if (reqConnection == "close")
-			{
-				_state = CLOSE_CONNECTION;
-				return (false);
-			}
-			_request.reset();
-			_response.reset();
-			_request.setMaxBodySize(_config.getClientMaxBodySize());
-			_state = READING_REQUEST;
-			updateLastActivity();
-			return (true);
-		}
-		else
-			return (true);
+		return (true);
 	}
 	
 	else if (bytesSend == -1)
