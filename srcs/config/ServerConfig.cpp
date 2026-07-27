@@ -3,7 +3,8 @@
 ServerConfig::ServerConfig()
 {
 	this->_port = 0;
-	this->_host = "";
+	this->_host = "127.0.0.1";
+	this->_root = ".";
 	this->_clientMaxBodySize = 0;
 }
 
@@ -18,6 +19,7 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& other)
 	{
 		this->_port = other._port;
 		this->_host = other._host;
+		this->_root = other._root;
 		this->_serverNames = other._serverNames;
 		this->_errorPages = other._errorPages;
 		this->_clientMaxBodySize = other._clientMaxBodySize;

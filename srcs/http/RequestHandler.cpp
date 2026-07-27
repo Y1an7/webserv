@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/23 00:55:57 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/27 09:27:30 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,8 @@
 #include <errno.h>
 #include <dirent.h>
 #include <fstream>
+#include <sstream>
+
 
 RequestHandler::RequestHandler(const HttpRequest& req, HttpResponse& res, const ServerConfig& config)
 	: _request(req), _response(res), _config(config), _matchedLocation(NULL) {}
@@ -100,6 +102,11 @@ void	RequestHandler::handleGet()
 						_response.setStatusCode(200);
 						_response.setFile(fd, idxStat.st_size);
 						_response.setHeader("Content-Type", getMimeType(testPath));
+						
+						std::ostringstream ss;
+						ss << idxStat.st_size;
+						_response.setHeader("Content-Length", ss.str());
+						
 						return ;
 					}
 				}
@@ -123,6 +130,10 @@ void	RequestHandler::handleGet()
 	_response.setStatusCode(200);
 	_response.setFile(fd, fileStat.st_size);
 	_response.setHeader("Content-Type", getMimeType(_resolvedPath));
+
+	std::ostringstream ssFallback;
+	ssFallback << fileStat.st_size;
+	_response.setHeader("Content-Length", ssFallback.str());
 }
 
 void	RequestHandler::matchLocation()
@@ -186,7 +197,7 @@ void RequestHandler::resolvePhysicalPath()
 	if (_matchedLocation != NULL && !_matchedLocation->getRoot().empty())
 		rootPath = _matchedLocation->getRoot();
 	else
-		rootPath = "./www";
+		rootPath = _config.getRoot();
 
 	while (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
 		rootPath.erase(rootPath.length() - 1);

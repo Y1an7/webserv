@@ -88,6 +88,7 @@ const char* ConfigParser::SyntaxException::what() const throw()
 	return "Error: Config file syntax error.";
 }
 
+
 void	ConfigParser::parse()
 {
 	this->_pos = 0;
@@ -104,6 +105,8 @@ void	ConfigParser::parse()
 		}
 	}
 }
+
+
 
 void	ConfigParser::parseServerBlock()
 {
@@ -130,6 +133,9 @@ void	ConfigParser::parseServerBlock()
 		else if (this->_tokens[this->_pos] == "client_max_body_size")
 			this->parseClientMaxBodySize(newServer);
 
+		else if (this->_tokens[this->_pos] == "root")
+			this->parseRoot(newServer);
+	
 		else if (this->_tokens[this->_pos] == "location")
 		{
 			this->_pos++;
@@ -188,6 +194,32 @@ void	ConfigParser::parseHost(ServerConfig& server)
 	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
 		throw ConfigParser::SyntaxException();
 	this->_pos++;
+}
+
+
+void	ConfigParser::parseRoot(ServerConfig& server)
+{
+	this->_pos++;
+
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] == ";"
+			|| this->_tokens[this->_pos] == "{" || this->_tokens[this->_pos] == "}")
+		throw	ConfigParser::SyntaxException();
+
+	std::string rootPath = this->_tokens[this->_pos];
+
+	if (rootPath.length() > 0 && rootPath[rootPath.length() - 1] == ';')
+	{
+		rootPath.erase(rootPath.length() - 1);
+		this->_pos++;
+	}
+	else
+	{
+		this->_pos++;
+		if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+			throw	ConfigParser::SyntaxException();
+		this->_pos++;
+	}
+	server.setRoot(rootPath);
 }
 
 
