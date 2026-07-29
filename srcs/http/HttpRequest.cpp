@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 19:41:21 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/29 18:48:07 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,6 +102,7 @@ std::string	HttpRequest::getMethodStr() const
 		case GET:		return "GET";
 		case POST:		return "POST";
 		case DELETE:	return "DELETE";
+		case HEAD:		return "HEAD";
 		default:		return "UNKNOWN";
 	}
 }

@@ -39,7 +39,7 @@ public:
 	const std::string&					getHost() const;
 	const std::string&					getRoot() const;
 	const std::vector<std::string>&		getServerNames() const;
-	const std::string					getErrorPages(int statusCode) const;
+	std::string							getErrorPages(int statusCode) const;
 	size_t 								getClientMaxBodySize() const;
 	const std::vector<Location>&		getLocations() const;
 

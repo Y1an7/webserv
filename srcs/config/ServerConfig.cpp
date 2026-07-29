@@ -85,7 +85,7 @@ const std::vector<std::string>& ServerConfig::getServerNames() const
 	return this->_serverNames;
 }
 
-const std::string ServerConfig::getErrorPages(int statusCode) const
+std::string ServerConfig::getErrorPages(int statusCode) const
 {
 	std::map<int, std::string>::const_iterator it = _errorPages.find(statusCode);
 	

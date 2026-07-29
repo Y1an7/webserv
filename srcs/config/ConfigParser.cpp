@@ -390,6 +390,11 @@ void	ConfigParser::parseLocationBlock(ServerConfig& server)
 			newLocation.setCgiPath(this->_tokens[this->_pos]);
 			this->_pos++;
 		}
+		else if (directive == "client_max_body_size")
+		{
+			this->parseLocationClientMaxBodySize(newLocation);
+			continue ;
+		}
 		else
 			throw ConfigParser::SyntaxException();
 		
@@ -404,3 +409,51 @@ void	ConfigParser::parseLocationBlock(ServerConfig& server)
 	server.addLocations(newLocation);
 }
 
+void	ConfigParser::parseLocationClientMaxBodySize(Location& loc)
+{
+	if (this->_pos >= this->_tokens.size())
+		throw	ConfigParser::SyntaxException();
+	
+	std::string token = this->_tokens[this->_pos];
+	size_t i = 0;
+	size_t multiplier = 1;
+
+	while (i < token.length())
+	{
+		if (!std::isdigit(token[i]))
+		{
+			if (i == token.size() -1)
+			{
+				if (token[i] == 'm' || token[i] == 'M')
+					multiplier = 1024 * 1024;
+				else if (token[i] == 'k' || token[i] == 'K')
+					multiplier = 1024;
+				else
+					throw ConfigParser::SyntaxException();
+			}
+			else
+				throw ConfigParser::SyntaxException();
+		}
+		i++;
+	}
+
+	std::string pureNumberStr = token;
+	if (multiplier != 1)
+		pureNumberStr = token.substr(0, token.length() - 1);
+		
+	size_t parsedNumber;
+	std::stringstream ss(pureNumberStr);
+	ss >> parsedNumber;
+
+	size_t maxSize = ~(size_t(0));
+	if (multiplier > 0 && parsedNumber > (maxSize / multiplier))
+		throw ConfigParser::SyntaxException();
+	
+	size_t	finalSize = parsedNumber * multiplier;
+	loc.setClientMaxBodySize(finalSize);
+
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+		throw	ConfigParser::SyntaxException();
+	this->_pos++;
+}

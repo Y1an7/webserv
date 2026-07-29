@@ -16,6 +16,8 @@ private:
 	std::vector<std::string>	_methods; //GET, POST, DELETE
 	std::string					_cgiExtension; 
 	std::string					_cgiPath;
+	size_t						_clientMaxBodySize;
+	bool						_hasClientMaxBodySize;
 
 public:
 	Location();
@@ -31,6 +33,9 @@ public:
 	void	addMethod(const std::string& method);
 	void	setCgiPath(const std:: string& cgiPath);
 	void	setCgiExtension(const std::string& cgiExt);
+	void	setClientMaxBodySize(size_t size);
+
+
 	//getters
 	const std::string&				getPath() const;
 	const std::vector<std::string>&	getIndex() const;
@@ -39,6 +44,8 @@ public:
 	const std::vector<std::string>&	getMethods() const;
 	const std::string&				getCgiPath() const;
 	const std::string&				getCgiExtension() const;
+	size_t							getClientMaxBodySize() const;
+	bool							hasClientMaxBodySize() const;
 };
 
 #endif

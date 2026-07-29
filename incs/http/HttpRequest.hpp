@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:37 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 19:39:17 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/29 18:50:59 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@
 class HttpRequest
 {
 	public:
-		enum Method { GET, POST, DELETE, UNKNOWN };
+		enum Method { GET, POST, DELETE, HEAD, UNKNOWN };
 		enum ParseState
 		{
 			PARSE_REQUEST_LINE,

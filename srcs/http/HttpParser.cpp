@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpParser.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/12 18:13:00 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 19:47:22 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/07/29 18:43:07 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,8 @@ bool	HttpRequest::parseRequestLine()
 		_method = POST;
 	else if (methodStr == "DELETE")
 		_method = DELETE;
+	else if (methodStr == "HEAD")
+		_method = HEAD;
 	else
 	{
 		_method = UNKNOWN;
