@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 16:27:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 23:25:03 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/29 18:55:54 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -266,4 +266,15 @@ bool	HttpResponse::isComplete() const
 		expectedBodySize = _body.length();
 	
 	return (_bytesSent >= expectedBodySize);
+}
+
+void	HttpResponse::discardBodyForHead()
+{
+	if (_fileFd != -1)
+	{
+		close(_fileFd);
+		_fileFd = -1;
+	}
+	_body.clear();
+	_fileSize = 0;
 }

@@ -7,6 +7,8 @@ Location::Location()
 	this->_autoindex = false;
 	this->_cgiExtension = "";
 	this->_cgiPath = "";
+	this->_clientMaxBodySize = 0;
+	this->_hasClientMaxBodySize = false;
 }
 
 Location::Location(const Location& other)
@@ -25,6 +27,8 @@ Location& Location::operator=(const Location& other)
 		this->_methods = other._methods;
 		this->_cgiExtension = other._cgiExtension;
 		this->_cgiPath = other._cgiPath;
+		this->_clientMaxBodySize = other._clientMaxBodySize;
+		this->_hasClientMaxBodySize = other._hasClientMaxBodySize;
 	}
 	return *this;
 }
@@ -66,6 +70,12 @@ void	Location::setCgiExtension(const std::string& cgiExt)
 	this->_cgiExtension = cgiExt;
 }
 
+void	Location::setClientMaxBodySize(size_t size)
+{
+	this->_clientMaxBodySize = size;
+	this->_hasClientMaxBodySize = true;
+}
+
 const std::string& Location::getPath() const
 {
 	return this->_path;
@@ -99,4 +109,14 @@ const std::string& Location::getCgiExtension() const
 const std::string& Location::getCgiPath() const
 {
 	return this->_cgiPath;
+}
+
+size_t Location::getClientMaxBodySize() const
+{
+	return this->_clientMaxBodySize;
+}
+
+bool Location::hasClientMaxBodySize() const
+{
+	return this->_hasClientMaxBodySize;
 }

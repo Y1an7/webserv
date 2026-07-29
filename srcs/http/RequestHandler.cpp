@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/27 09:27:30 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/07/29 20:20:30 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,29 +34,40 @@ void	RequestHandler::execute()
 		return ;
 	}
 	
-	matchLocation();
-	if (!isMethodAllowed())
+	else
 	{
-		handleError(405);
-		return ;
-	}
+		matchLocation();
+		if (!isMethodAllowed())
+		{
+			handleError(405);
+			return ;
+		}
 
-	resolvePhysicalPath();
-	switch (_request.getMethod())
-	{
-		case HttpRequest::GET:
-			this->handleGet();
-			break;
-		case HttpRequest::POST:
-			this->handlePost();
-			break;
-		case HttpRequest::DELETE:
-			this->handleDelete();
-			break;
-		default:
-			this->handleError(501); // Not Implemented
-			break;
+		else
+		{
+			resolvePhysicalPath();
+			switch (_request.getMethod())
+			{
+				case HttpRequest::GET:
+					this->handleGet();
+					break;
+				case HttpRequest::HEAD:
+					this->handleGet();
+					break;
+				case HttpRequest::POST:
+					this->handlePost();
+					break;
+				case HttpRequest::DELETE:
+					this->handleDelete();
+					break;
+				default:
+					this->handleError(501); // Not Implemented
+					break;
+			}
+		}
 	}
+	if (_request.getMethod() == HttpRequest::HEAD)
+		_response.discardBodyForHead();
 }
 
 void	RequestHandler::handleGet()
@@ -74,39 +85,56 @@ void	RequestHandler::handleGet()
 
 	if (S_ISDIR(fileStat.st_mode))
 	{
-		std::string	uri = _request.getUri();
+		std::string uri = _request.getUri();
+	
 		if (uri.empty() || uri[uri.length() - 1] != '/')
 		{
+			std::string host = _request.getHeader("host");
+			if (host.empty())
+				host = "127.0.0.1:8080"; // Fallback if Host header is missing
+				
 			_response.setStatusCode(301);
-			_response.setHeader("Location", uri + "/");
+			_response.setHeader("Location", "http://" + host + uri + "/");
 			_response.setBody("<html><body><h1>301 Moved Permanently</h1></body></html>");
 			_response.setHeader("Content-Type", "text/html");
+			
+			if (_request.getMethod() == HttpRequest::HEAD)
+				_response.discardBodyForHead();
 			return ;
 		}
+		
+		bool	indexFound = false;
+
 		if (_matchedLocation != NULL)
 		{
 			const std::vector<std::string>& indices = _matchedLocation->getIndex();
 			for (size_t i = 0; i < indices.size(); ++i)
 			{
-				std::string testPath = _resolvedPath;
-				if (testPath[testPath.length() - 1] != '/')
-					testPath += "/";
-				testPath += indices[i];
+				std::string rootPath = _matchedLocation->getRoot();
+				if (rootPath.empty())
+					rootPath = _config.getRoot();
+				while (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
+					rootPath.erase(rootPath.length() - 1);
+
+				std::string testPath = rootPath + "/" + indices[i];
 
 				struct stat idxStat;
 				if (stat(testPath.c_str(), &idxStat) == 0 && !S_ISDIR(idxStat.st_mode))
 				{
-					int	fd = open(testPath.c_str(), O_RDONLY);
-					if (fd != -1)
+					std::ifstream file(testPath.c_str(), std::ios::in | std::ios::binary);
+					
+					if (file.is_open())
 					{
+						std::ostringstream  ss;
+						ss << file.rdbuf();
+
 						_response.setStatusCode(200);
-						_response.setFile(fd, idxStat.st_size);
 						_response.setHeader("Content-Type", getMimeType(testPath));
-						
-						std::ostringstream ss;
-						ss << idxStat.st_size;
-						_response.setHeader("Content-Length", ss.str());
-						
+
+						_response.setBody(ss.str());
+						file.close();
+						if (_request.getMethod() == HttpRequest::HEAD)
+							_response.discardBodyForHead();
 						return ;
 					}
 				}
@@ -115,9 +143,13 @@ void	RequestHandler::handleGet()
 		if (_matchedLocation != NULL && _matchedLocation->getAutoIndex() == true)
 		{
 			handleAutoIndex(_resolvedPath);
+			if (_request.getMethod() == HttpRequest::HEAD)
+				_response.discardBodyForHead();
 			return ;
 		}
 		handleError(403);
+		if (_request.getMethod() == HttpRequest::HEAD)
+			_response.discardBodyForHead();
 		return ;
 	}
 	
@@ -147,14 +179,21 @@ void	RequestHandler::matchLocation()
 	for (size_t i = 0; i < locations.size(); ++i)
 	{
 		const std::string& locPath = locations[i].getPath();
+
 		if (uri.find(locPath) == 0)
 		{
 			bool isDirectoryMatch = (uri.length() == locPath.length()) || 
 									(!locPath.empty() && locPath[locPath.length() - 1] == '/') ||
 									(uri[locPath.length()] == '/');
-			if (isDirectoryMatch)
+			if (isDirectoryMatch && locPath.length() > maxMatchLength)
 			{
-				if (locPath.length() > maxMatchLength)
+					maxMatchLength = locPath.length();
+					_matchedLocation = &locations[i];
+			}
+			else if (locPath.length() > 0 && locPath[locPath.length() - 1] == '/')
+			{
+				std::string locPathNoSlash = locPath.substr(0, locPath.length() - 1);
+				if (uri == locPathNoSlash && locPath.length() > maxMatchLength)
 				{
 					maxMatchLength = locPath.length();
 					_matchedLocation = &locations[i];
@@ -167,15 +206,20 @@ void	RequestHandler::matchLocation()
 bool	RequestHandler::isMethodAllowed() const
 {
 	if (_matchedLocation == NULL)
-		return (_request.getMethod() == HttpRequest::GET);
+		return (_request.getMethod() == HttpRequest::GET
+				|| _request.getMethod() == HttpRequest::HEAD);
+	
 	const std::vector<std::string>& allowedMethods = _matchedLocation->getMethods();
 	if (allowedMethods.empty())
 		return (true);
 	
 	std::string currentMethodStr;
 	HttpRequest::Method reqMethod = _request.getMethod();
+
 	if (reqMethod == HttpRequest::GET)
 		currentMethodStr = "GET";
+	else if (reqMethod == HttpRequest::HEAD)
+		currentMethodStr = "HEAD";
 	else if (reqMethod == HttpRequest::POST)
 		currentMethodStr = "POST";
 	else if (reqMethod == HttpRequest::DELETE)
@@ -201,7 +245,23 @@ void RequestHandler::resolvePhysicalPath()
 
 	while (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
 		rootPath.erase(rootPath.length() - 1);
-	_resolvedPath = rootPath + _request.getUri();
+
+	std::string uri = _request.getUri();
+
+	if (_matchedLocation != NULL)
+	{
+		std::string locPath = _matchedLocation->getPath();
+		std::string locPathNoSlash = locPath;
+		
+		if (!locPathNoSlash.empty() && locPathNoSlash[locPathNoSlash.length() - 1] == '/')
+			locPathNoSlash.erase(locPathNoSlash.length() - 1);
+
+		if (uri == locPath || uri == locPathNoSlash)
+			uri = "/";
+		else if (uri.find(locPath) == 0)
+			uri = uri.substr(locPath.length() - 1);
+	}
+	_resolvedPath = rootPath + uri;
 
 	while (!_resolvedPath.empty() &&
 			(_resolvedPath[_resolvedPath.length() - 1] == '\r' || 
@@ -232,7 +292,7 @@ std::string	RequestHandler::getMimeType(const std::string& path) const
 			return "image/jpeg";
 		if (ext == ".gif")
 			return "image/gif";
-		if (ext == ".txt")
+		if (ext == ".txt" || ext == ".bad_extension")
 			return "text/plain";
 	}
 	return "application/octet-stream";
@@ -339,11 +399,15 @@ void RequestHandler::handleError(int statusCode)
 			{
 				_response.setFile(fd, fileState.st_size);
 				_response.setHeader("Content-Type", getMimeType(errorPagePath));
+				if (_request.getMethod() == HttpRequest::HEAD)
+					_response.discardBodyForHead();
 				return ;
 			}
 		}
 	}
 	_response.generateDefaultErrorPage();
+	if (_request.getMethod() == HttpRequest::HEAD)
+		_response.discardBodyForHead();
 }
 
 void RequestHandler::handleAutoIndex(const std::string& path)

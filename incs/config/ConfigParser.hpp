@@ -24,6 +24,7 @@ private:
 	void	parseServerName(ServerConfig& server);
 	void	parseClientMaxBodySize(ServerConfig& server);
 	void	parseLocationBlock(ServerConfig& server);
+	void	parseLocationClientMaxBodySize(Location &loc);
 
 public:
 	ConfigParser();
