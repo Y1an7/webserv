@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/29 20:20:30 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/03 19:00:50 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,37 +86,18 @@ void	RequestHandler::handleGet()
 	if (S_ISDIR(fileStat.st_mode))
 	{
 		std::string uri = _request.getUri();
-	
-		if (uri.empty() || uri[uri.length() - 1] != '/')
+		
+		if (!_resolvedPath.empty() && _resolvedPath[_resolvedPath.length() - 1] != '/')
 		{
-			std::string host = _request.getHeader("host");
-			if (host.empty())
-				host = "127.0.0.1:8080"; // Fallback if Host header is missing
-				
-			_response.setStatusCode(301);
-			_response.setHeader("Location", "http://" + host + uri + "/");
-			_response.setBody("<html><body><h1>301 Moved Permanently</h1></body></html>");
-			_response.setHeader("Content-Type", "text/html");
-			
-			if (_request.getMethod() == HttpRequest::HEAD)
-				_response.discardBodyForHead();
-			return ;
+			_resolvedPath += '/';
 		}
 		
-		bool	indexFound = false;
-
 		if (_matchedLocation != NULL)
 		{
 			const std::vector<std::string>& indices = _matchedLocation->getIndex();
 			for (size_t i = 0; i < indices.size(); ++i)
 			{
-				std::string rootPath = _matchedLocation->getRoot();
-				if (rootPath.empty())
-					rootPath = _config.getRoot();
-				while (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
-					rootPath.erase(rootPath.length() - 1);
-
-				std::string testPath = rootPath + "/" + indices[i];
+				std::string testPath = _resolvedPath + indices[i];
 
 				struct stat idxStat;
 				if (stat(testPath.c_str(), &idxStat) == 0 && !S_ISDIR(idxStat.st_mode))
@@ -147,7 +128,7 @@ void	RequestHandler::handleGet()
 				_response.discardBodyForHead();
 			return ;
 		}
-		handleError(403);
+		handleError(404);
 		if (_request.getMethod() == HttpRequest::HEAD)
 			_response.discardBodyForHead();
 		return ;
@@ -157,6 +138,8 @@ void	RequestHandler::handleGet()
 	if (fd == -1)
 	{
 		handleError(403);
+		if (_request.getMethod() == HttpRequest::HEAD)
+			_response.discardBodyForHead();
 		return ;
 	}
 	_response.setStatusCode(200);
@@ -166,6 +149,11 @@ void	RequestHandler::handleGet()
 	std::ostringstream ssFallback;
 	ssFallback << fileStat.st_size;
 	_response.setHeader("Content-Length", ssFallback.str());
+	if (_request.getMethod() == HttpRequest::HEAD)
+	{
+		close(fd);
+		return ;
+	}
 }
 
 void	RequestHandler::matchLocation()
@@ -246,23 +234,20 @@ void RequestHandler::resolvePhysicalPath()
 	while (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
 		rootPath.erase(rootPath.length() - 1);
 
-	std::string uri = _request.getUri();
-
+	std::string	leftoverUri = _request.getUri();
+	
 	if (_matchedLocation != NULL)
 	{
-		std::string locPath = _matchedLocation->getPath();
-		std::string locPathNoSlash = locPath;
-		
-		if (!locPathNoSlash.empty() && locPathNoSlash[locPathNoSlash.length() - 1] == '/')
-			locPathNoSlash.erase(locPathNoSlash.length() - 1);
-
-		if (uri == locPath || uri == locPathNoSlash)
-			uri = "/";
-		else if (uri.find(locPath) == 0)
-			uri = uri.substr(locPath.length() - 1);
+		std::string	locPath = _matchedLocation->getPath();
+		if (leftoverUri.find(locPath) == 0)
+			leftoverUri.erase(0, locPath.length());
 	}
-	_resolvedPath = rootPath + uri;
 
+	if (leftoverUri.empty() || leftoverUri[0] != '/')
+		leftoverUri = "/" + leftoverUri;
+	
+	_resolvedPath = rootPath + leftoverUri;
+		
 	while (!_resolvedPath.empty() &&
 			(_resolvedPath[_resolvedPath.length() - 1] == '\r' || 
 			_resolvedPath[_resolvedPath.length() - 1] == '\n' || 
