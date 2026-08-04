@@ -42,6 +42,7 @@ public:
 	std::string							getErrorPages(int statusCode) const;
 	size_t 								getClientMaxBodySize() const;
 	const std::vector<Location>&		getLocations() const;
+	const Location* 					matchLocation(const std::string& uri) const;
 
 };
 

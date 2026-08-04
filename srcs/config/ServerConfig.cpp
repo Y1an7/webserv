@@ -103,3 +103,36 @@ const std::vector<Location>& ServerConfig::getLocations() const
 {
 	return this->_locations;
 }
+
+const Location* ServerConfig::matchLocation(const std::string& uri) const
+{
+	const Location* matchedLocation = NULL;
+	size_t maxMatchLength = 0;
+
+	for (size_t i = 0; i < _locations.size(); ++i)
+	{
+		const std::string& locPath = _locations[i].getPath();
+		if (uri.find(locPath) == 0)
+		{
+			bool isDirectoryMatch = (uri.length() == locPath.length()) || 
+									(!locPath.empty() && locPath[locPath.length() - 1] == '/') ||
+									(uri[locPath.length()] == '/');
+				
+			if (isDirectoryMatch && locPath.length() > maxMatchLength)
+			{
+				maxMatchLength = locPath.length();
+				matchedLocation = &_locations[i];
+			}
+			else if (locPath.length() > 0 && locPath[locPath.length() - 1] == '/')
+			{
+				std::string locPathNoSlash = locPath.substr(0, locPath.length() - 1);
+				if (uri == locPathNoSlash && locPath.length() > maxMatchLength)
+				{
+					maxMatchLength = locPath.length();
+					matchedLocation = &_locations[i];
+				}
+			}
+		}
+	}
+	return matchedLocation;
+}

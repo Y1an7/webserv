@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/03 19:00:50 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/04 15:57:45 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -158,37 +158,7 @@ void	RequestHandler::handleGet()
 
 void	RequestHandler::matchLocation()
 {
-	const std::string& uri = _request.getUri();
-	const std::vector<Location>& locations = _config.getLocations();
-
-	_matchedLocation = NULL;
-	size_t	maxMatchLength = 0;
-	
-	for (size_t i = 0; i < locations.size(); ++i)
-	{
-		const std::string& locPath = locations[i].getPath();
-
-		if (uri.find(locPath) == 0)
-		{
-			bool isDirectoryMatch = (uri.length() == locPath.length()) || 
-									(!locPath.empty() && locPath[locPath.length() - 1] == '/') ||
-									(uri[locPath.length()] == '/');
-			if (isDirectoryMatch && locPath.length() > maxMatchLength)
-			{
-					maxMatchLength = locPath.length();
-					_matchedLocation = &locations[i];
-			}
-			else if (locPath.length() > 0 && locPath[locPath.length() - 1] == '/')
-			{
-				std::string locPathNoSlash = locPath.substr(0, locPath.length() - 1);
-				if (uri == locPathNoSlash && locPath.length() > maxMatchLength)
-				{
-					maxMatchLength = locPath.length();
-					_matchedLocation = &locations[i];
-				}
-			}
-		}
-	}
+	_matchedLocation = _config.matchLocation(_request.getUri());
 }
 
 bool	RequestHandler::isMethodAllowed() const

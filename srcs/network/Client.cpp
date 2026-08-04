@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/27 11:04:11 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/04 16:40:10 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,6 +133,8 @@ bool	Client::writeData()
 
 		_request.reset();
 		_response.reset();
+		_isCgiRequest = false;
+		_cgi.killCgi();
 		_request.setMaxBodySize(_config.getClientMaxBodySize());
 		_state = READING_REQUEST;
 		updateLastActivity();
@@ -211,49 +213,82 @@ CgiHandler& Client::getCgiHandler()
 }
 
 
-bool	Client::checkAndInitCgi()
+bool    Client::checkAndInitCgi()
 {
-	_isCgiRequest = false;
-	
-	std::string uri = _request.getUri();
-	if (uri.find(".py") != std::string::npos || uri.find(".php") != std::string::npos)
-	{
-		_isCgiRequest = true;
-		CgiRequest	cgiReq;
-		cgiReq.method = _request.getMethodStr();
+    _isCgiRequest = false;
+    
+    std::string uri = _request.getUri();
+    std::string pathOnly;
+    std::string queryString;
+    
+    size_t  questionMarkPos = uri.find('?');
+    if (questionMarkPos != std::string::npos)
+    {
+        pathOnly = uri.substr(0, questionMarkPos);
+        queryString = uri.substr(questionMarkPos + 1);
+    }
+    else
+    {
+        pathOnly = uri;
+        queryString = "";
+    }
 
-		size_t	questionMarkPos = uri.find('?');
-		std::string pathOnly;
-		if (questionMarkPos != std::string::npos)
-		{
-			pathOnly = uri.substr(0, questionMarkPos);
-			cgiReq.queryString = uri.substr(questionMarkPos + 1);
-		}
-		else
-		{
-			pathOnly = uri;
-			cgiReq.queryString = "";
-		}
+    const Location* matchedLoc = _config.matchLocation(pathOnly);
 
-		std::string rootDir = _config.getRoot();
-		if (rootDir.empty())
-			rootDir = "./www";
+    if (!matchedLoc || matchedLoc->getCgiExtension().empty()) //
+        return (false);
+
+    std::string configuredCgiExt = matchedLoc->getCgiExtension();
+
+    if (pathOnly.length() >= configuredCgiExt.length() && 
+        pathOnly.compare(pathOnly.length() - configuredCgiExt.length(), configuredCgiExt.length(), configuredCgiExt) == 0)
+    {
+        _isCgiRequest = true;
+        CgiRequest  cgiReq;
+        cgiReq.method = _request.getMethodStr();
+        cgiReq.queryString = queryString;
+
+        std::string rootDir;
+        if (!matchedLoc->getRoot().empty())
+            rootDir = matchedLoc->getRoot();
+        else
+            rootDir = _config.getRoot();
+            
+        if (rootDir.empty())
+            rootDir = "./www";
+        
+        while (!rootDir.empty() && rootDir[rootDir.length() - 1] == '/')
+            rootDir.erase(rootDir.length() - 1);
+            
+        std::string leftoverUri = pathOnly;
+        std::string locPath = matchedLoc->getPath();
+        
+        if (leftoverUri.find(locPath) == 0)
+            leftoverUri.erase(0, locPath.length());
+            
+        if (leftoverUri.empty() || leftoverUri[0] != '/')
+            leftoverUri = "/" + leftoverUri;
+
+        cgiReq.scriptPath = rootDir + leftoverUri;
+
+        while (!cgiReq.scriptPath.empty() &&
+            (cgiReq.scriptPath[cgiReq.scriptPath.length() - 1] == '\r' || 
+             cgiReq.scriptPath[cgiReq.scriptPath.length() - 1] == '\n' || 
+             cgiReq.scriptPath[cgiReq.scriptPath.length() - 1] == ' '))
+        {
+            cgiReq.scriptPath.erase(cgiReq.scriptPath.length() - 1);
+        }
 		
-		if (!rootDir.empty() && rootDir[rootDir.length() - 1] == '/')
-			rootDir.erase(rootDir.length() - 1);
-		if (!pathOnly.empty() && pathOnly[0] != '/')
-			pathOnly = "/" + pathOnly;
+		cgiReq.executorPath = matchedLoc->getCgiPath();
+        cgiReq.httpBody = _request.getBody();
+        cgiReq.headerInfo = _request.getHeaders();
 
-		cgiReq.scriptPath = rootDir + pathOnly;
-
-		cgiReq.httpBody = _request.getBody();
-		cgiReq.headerInfo = _request.getHeaders();
-
-		if (_cgi.initCgi(cgiReq) == false)
-			return (false);
-		return (true);
-	}
-	return (false);
+        if (_cgi.initCgi(cgiReq) == false)
+            return (false);
+            
+        return (true);
+    }
+    return (false);
 }
 
 void	Client::updateLastActivity()
