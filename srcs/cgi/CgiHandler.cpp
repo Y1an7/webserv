@@ -77,23 +77,44 @@ void	CgiHandler::_setNonBlocking(int fd)
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 }
 
-
-
-void	CgiHandler::_buildArgv(const CgiRequest& req)
+void    CgiHandler::_buildArgv(const CgiRequest& req)
 {
-	_argv = new char*[2]; //allocate for 2 string pointers
+    if (!req.executorPath.empty())
+    {
+        _argv = new char*[3]; 
 
-	_argv[0] = new char[req.scriptPath.length() + 1];
+        _argv[0] = new char[req.executorPath.length() + 1];
+        size_t i = 0;
+        while (i < req.executorPath.length()) {
+            _argv[0][i] = req.executorPath[i];
+            i++;
+        }
+        _argv[0][i] = '\0';
 
-	size_t i = 0;
-	while (i < req.scriptPath.length())
-	{
-		_argv[0][i] = req.scriptPath[i];
-		i++;
-	}
-	_argv[0][i] = '\0';
+        _argv[1] = new char[req.scriptPath.length() + 1];
+        size_t j = 0;
+        while (j < req.scriptPath.length()) {
+            _argv[1][j] = req.scriptPath[j];
+            j++;
+        }
+        _argv[1][j] = '\0';
 
-	_argv[1] = NULL; //mandatory array terminator
+        _argv[2] = NULL;
+    }
+    else
+    {
+        _argv = new char*[2]; 
+
+        _argv[0] = new char[req.scriptPath.length() + 1];
+        size_t i = 0;
+        while (i < req.scriptPath.length()) {
+            _argv[0][i] = req.scriptPath[i];
+            i++;
+        }
+        _argv[0][i] = '\0';
+
+        _argv[1] = NULL;
+    }
 }
 
 
@@ -127,8 +148,8 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	envVars.push_back("SCRIPT_FILENAME=" + req.scriptPath);
 	envVars.push_back("REDIRECT_STATUS=200");
 
-	if (req.headerInfo.find("Content-Length") != req.headerInfo.end())
-		envVars.push_back("CONTENT_LENGTH=" + req.headerInfo.at("Content-Length"));
+	if (req.headerInfo.find("content-Length") != req.headerInfo.end())
+		envVars.push_back("CONTENT_LENGTH=" + req.headerInfo.at("content-Length"));
 	else if (!req.httpBody.empty())
 	{
 		std::stringstream ss;
@@ -136,15 +157,15 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 		envVars.push_back("CONTENT_LENGTH=" + ss.str());
 	}
 
-	if (req.headerInfo.find("Content-Type") != req.headerInfo.end())
-		envVars.push_back("CONTENT-TYPE=" + req.headerInfo.at("Content-Type"));
+	if (req.headerInfo.find("content-type") != req.headerInfo.end())
+		envVars.push_back("CONTENT-TYPE=" + req.headerInfo.at("content-type"));
 
 	std::map<std::string, std::string>::const_iterator it = req.headerInfo.begin();
 	
 	while (it != req.headerInfo.end())
 	{
 		std::string key = it->first;
-		if (key != "Content-Length" && key != "Content-Type")
+		if (key != "content-length" && key != "content-type")
 		{
 			std::string	cgiKey = "HTTP_" + formattedCgiHeaderKey(it->first);
 			envVars.push_back(cgiKey + "=" + it->second);
@@ -170,9 +191,6 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	}
 	_envp[i] = NULL;
 }
-
-
-
 
 bool CgiHandler::initCgi(const CgiRequest& req)
 {

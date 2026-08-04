@@ -12,6 +12,7 @@ struct	CgiRequest
 {
 	std::string							method;
 	std::string							scriptPath;
+	std::string							executorPath;
 	std::string							queryString;
 	std::string							httpBody;
 	std::map<std::string, std::string>	headerInfo;
