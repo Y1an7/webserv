@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/04 16:40:10 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/05 19:07:59 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -184,9 +184,30 @@ void	Client::prepareHttpResponse()
 				std::string cgiHeaders = cgiOutPut.substr(0, headerEnd);
 				std::string cgiBody = cgiOutPut.substr(headerEnd + 4);
 				
+				int statusCode = 200;
+				std::string statusMsg = "OK";
+				std::string remainingHeaders;
+				std::istringstream headerStream(cgiHeaders);
+				std::string line;
+				while (std::getline(headerStream, line))
+				{
+					if (!line.empty() && line[line.length() - 1] == '\r')
+						line.erase(line.length() - 1);
+					if (line.compare(0, 8, "Status: ") == 0)
+					{
+						std::istringstream statusLine(line.substr(8));
+						statusLine >> statusCode;
+						std::getline(statusLine, statusMsg);
+						if (!statusMsg.empty() && statusMsg[0] == ' ')
+							statusMsg.erase(0, 1);
+					}
+					else
+						remainingHeaders += line + "\r\n";
+				}
+
 				std::stringstream ss;
-				ss << "HTTP/1.1 200 OK\r\n"
-					<< cgiHeaders << "\r\n"
+				ss << "HTTP/1.1 200 OK\r\n" << statusCode << " " << statusMsg << "\r\n"
+					<< remainingHeaders
 					<< "Content-Length: " << cgiBody.length() << "\r\n\r\n"
 					<< cgiBody;
 				_responseBuffer = ss.str();

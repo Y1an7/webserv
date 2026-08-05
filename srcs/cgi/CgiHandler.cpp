@@ -148,8 +148,25 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	envVars.push_back("SCRIPT_FILENAME=" + req.scriptPath);
 	envVars.push_back("REDIRECT_STATUS=200");
 
-	if (req.headerInfo.find("content-Length") != req.headerInfo.end())
-		envVars.push_back("CONTENT_LENGTH=" + req.headerInfo.at("content-Length"));
+	std::string host = "127.0.0.1";
+	std::string port = "8080";
+	if (req.headerInfo.find("host") != req.headerInfo.end())
+	{
+		std::string hostHeader = req.headerInfo.at("host");
+		size_t colonPos = hostHeader.find(':');
+		if (colonPos != std::string::npos)
+		{
+			host = hostHeader.substr(0, colonPos);
+			port = hostHeader.substr(colonPos + 1);
+		}
+		else
+			host = hostHeader;
+	}
+	envVars.push_back("SERVER_NAME=" + host);
+	envVars.push_back("SERVER_PORT=" + port);
+
+	if (req.headerInfo.find("content-length") != req.headerInfo.end())
+		envVars.push_back("CONTENT_LENGTH=" + req.headerInfo.at("content-length"));
 	else if (!req.httpBody.empty())
 	{
 		std::stringstream ss;
@@ -158,7 +175,7 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	}
 
 	if (req.headerInfo.find("content-type") != req.headerInfo.end())
-		envVars.push_back("CONTENT-TYPE=" + req.headerInfo.at("content-type"));
+		envVars.push_back("CONTENT_TYPE=" + req.headerInfo.at("content-type"));
 
 	std::map<std::string, std::string>::const_iterator it = req.headerInfo.begin();
 	

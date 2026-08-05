@@ -277,8 +277,8 @@ void	ConfigParser::parseClientMaxBodySize(ServerConfig& server)
 	this->_pos++;
 	if (this->_pos >= this->_tokens.size())
 		throw ConfigParser::SyntaxException();
-
 	std::string token = this->_tokens[this->_pos];
+	
 	size_t i = 0;
 	size_t multiplier = 1;
 
