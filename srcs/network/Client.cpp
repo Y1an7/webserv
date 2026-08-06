@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/05 19:07:59 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/06 12:55:12 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -160,7 +160,6 @@ bool	Client::writeData()
 	_state = CLOSE_CONNECTION;
 	return false;
 }
-
 void	Client::prepareHttpResponse()
 {
 	if (_isCgiRequest)
@@ -189,10 +188,12 @@ void	Client::prepareHttpResponse()
 				std::string remainingHeaders;
 				std::istringstream headerStream(cgiHeaders);
 				std::string line;
+
 				while (std::getline(headerStream, line))
 				{
 					if (!line.empty() && line[line.length() - 1] == '\r')
 						line.erase(line.length() - 1);
+						
 					if (line.compare(0, 8, "Status: ") == 0)
 					{
 						std::istringstream statusLine(line.substr(8));
@@ -202,21 +203,26 @@ void	Client::prepareHttpResponse()
 							statusMsg.erase(0, 1);
 					}
 					else
+					{
 						remainingHeaders += line + "\r\n";
+					}
 				}
 
 				std::stringstream ss;
-				ss << "HTTP/1.1 200 OK\r\n" << statusCode << " " << statusMsg << "\r\n"
+				ss << "HTTP/1.1 " << statusCode << " " << statusMsg << "\r\n"
 					<< remainingHeaders
 					<< "Content-Length: " << cgiBody.length() << "\r\n\r\n"
 					<< cgiBody;
 				_responseBuffer = ss.str();
 			}
 			else
+			{
 				_responseBuffer = "HTTP/1.1 200 OK\r\n\r\n" + cgiOutPut;
+			}
 		}
 		return ;
 	}
+    
 	RequestHandler handler(_request, _response, _config);
 	handler.execute();
 
@@ -256,7 +262,7 @@ bool    Client::checkAndInitCgi()
 
     const Location* matchedLoc = _config.matchLocation(pathOnly);
 
-    if (!matchedLoc || matchedLoc->getCgiExtension().empty()) //
+    if (!matchedLoc || matchedLoc->getCgiExtension().empty())
         return (false);
 
     std::string configuredCgiExt = matchedLoc->getCgiExtension();
@@ -264,6 +270,22 @@ bool    Client::checkAndInitCgi()
     if (pathOnly.length() >= configuredCgiExt.length() && 
         pathOnly.compare(pathOnly.length() - configuredCgiExt.length(), configuredCgiExt.length(), configuredCgiExt) == 0)
     {
+		const std::vector<std::string>& allowedMethods = matchedLoc->getMethods();
+		if (!allowedMethods.empty())
+		{
+			bool methodAllowed = false;
+			std::string reqMethod = _request.getMethodStr();
+			for (size_t i = 0; i < allowedMethods.size(); ++i)
+			{
+				if (allowedMethods[i] == reqMethod)
+				{
+					methodAllowed = true;
+					break ;
+				}
+			}
+			if (!methodAllowed)
+				return (false);
+		}
         _isCgiRequest = true;
         CgiRequest  cgiReq;
         cgiReq.method = _request.getMethodStr();
