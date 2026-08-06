@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/06 14:38:13 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/06 14:42:34 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,7 +57,7 @@ void	Server::initEpoll()
 		ev.data.fd = serverFd;
 
 		if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, serverFd, &ev) == -1)
-			throw EpollExceptio n(std::string("epoll_ctl ADD serverFd failed: ") + strerror(errno));
+			throw EpollException(std::string("epoll_ctl ADD serverFd failed: ") + strerror(errno));
 	}
 	std::cout << "Server successfully initialized epoll with " << _serverSocket.size() << " ports." << std::endl;
 }
