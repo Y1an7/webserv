@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/06 12:55:12 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/07 18:41:11 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,10 +20,14 @@
 #include <iostream>
 #include <sstream>
 
-Client::Client(int fd, const ServerConfig& config) : _fd(fd), _config(config), _state(READING_REQUEST), _isCgiRequest(false)
+Client::Client(int fd, const std::vector<ServerConfig>& configs) : _fd(fd), _configs(configs), _state(READING_REQUEST), _isCgiRequest(false)
 {
 	updateLastActivity();
-	_request.setMaxBodySize(_config.getClientMaxBodySize());
+	if (!_configs.empty())
+	{
+		_request.setMaxBodySize(_configs[0].getClientMaxBodySize());
+		_activeConfig = &_configs[0];
+	}
 }
 
 Client::~Client() {}
@@ -52,6 +56,35 @@ const HttpResponse&	Client::getResponse() const
 	return (_response);
 }
 
+void	Client::resolveActiveConfig()
+{
+	if (_configs.empty())
+		return ;
+	std::string hostHeader = _request.getHeader("Host");
+	size_t	colonPos = hostHeader.find(':');
+	if (colonPos != std::string::npos)
+		hostHeader = hostHeader.substr(0, colonPos);
+	
+	_activeConfig = &(_configs[0]);
+	bool foundMatch = false;
+	for (size_t i = 0; i < _configs.size(); ++i)
+	{
+		const std::vector<std::string>& names = _configs[i].getServerNames();
+		for (size_t j = 0; j < names.size(); ++j)
+		{
+			if (names[j] == hostHeader)
+			{
+				_activeConfig = &(_configs[i]);
+				foundMatch = true;
+				break ;
+			}
+		}
+		if (foundMatch)
+			break ;
+	}
+	_request.setMaxBodySize(_activeConfig->getClientMaxBodySize());
+}
+
 bool	Client::readData()
 {
 	char	buffer[8192];
@@ -64,6 +97,7 @@ bool	Client::readData()
 		HttpRequest::ParseState reqState = _request.getState();
 		if (reqState == HttpRequest::PARSE_COMPLETE)
 		{
+			resolveActiveConfig();
 			if (checkAndInitCgi())
 				_state = HANDLING_CGI;
 			else
@@ -135,7 +169,7 @@ bool	Client::writeData()
 		_response.reset();
 		_isCgiRequest = false;
 		_cgi.killCgi();
-		_request.setMaxBodySize(_config.getClientMaxBodySize());
+		_request.setMaxBodySize(_activeConfig->getClientMaxBodySize());
 		_state = READING_REQUEST;
 		updateLastActivity();
 		return (true);
@@ -223,7 +257,7 @@ void	Client::prepareHttpResponse()
 		return ;
 	}
     
-	RequestHandler handler(_request, _response, _config);
+	RequestHandler handler(_request, _response, *_activeConfig);
 	handler.execute();
 
 	std::string headerStr = _response.buildAndGetHeaderString();
@@ -260,7 +294,7 @@ bool    Client::checkAndInitCgi()
         queryString = "";
     }
 
-    const Location* matchedLoc = _config.matchLocation(pathOnly);
+    const Location* matchedLoc = _activeConfig->matchLocation(pathOnly);
 
     if (!matchedLoc || matchedLoc->getCgiExtension().empty())
         return (false);
@@ -295,7 +329,7 @@ bool    Client::checkAndInitCgi()
         if (!matchedLoc->getRoot().empty())
             rootDir = matchedLoc->getRoot();
         else
-            rootDir = _config.getRoot();
+            rootDir = _activeConfig->getRoot();
             
         if (rootDir.empty())
             rootDir = "./www";

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerSocket.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:40:30 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/02 18:52:26 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/07 17:30:57 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,20 +21,20 @@
 class ServerSocket
 {
 	private:
-		int					_fd;
-		ServerConfig		_config;
-		struct sockaddr_in	_address;
+		int								_fd;
+		std::vector<ServerConfig>		_configs;
+		struct sockaddr_in				_address;
 	
 		ServerSocket(const ServerSocket& other);
 		ServerSocket&	operator=(const ServerSocket& other);
 	public:
-		ServerSocket(const ServerConfig& config);
+		ServerSocket(const std::vector<ServerConfig>& configs);
 		~ServerSocket();
 
-		void				init();
-		int					acceptConnect();
-		int					getFd() const;
-		const ServerConfig& getConfig() const;
+		void								init();
+		int									acceptConnect();
+		int									getFd() const;
+		const std::vector<ServerConfig>&	getConfigs() const;
 
 		class SocketException : public std::exception
 		{

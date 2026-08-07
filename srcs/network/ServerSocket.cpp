@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 16:50:43 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 19:57:38 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/07 17:40:02 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,21 +19,22 @@
 #include <iostream>
 #include <cstring>
 
-ServerSocket::ServerSocket(const ServerConfig& config)
-	:	_fd(-1), _config(config), _address() {}
+ServerSocket::ServerSocket(const std::vector<ServerConfig>& configs)
+	:	_fd(-1), _configs(configs), _address() {}
 
 ServerSocket::~ServerSocket()
 {
 	if (_fd != -1)
 	{
 		close(_fd);
-		std::cout << "Server socket closed on port: " << _config.getPort() << std::endl;
+		if (!_configs.empty())
+			std::cout << "Server socket closed on port: " << _configs[0].getPort() << std::endl;
 	}
 }
 void	ServerSocket::init()
 {
 	std::stringstream ss;
-	ss << _config.getPort();
+	ss << _configs[0].getPort();
 	std::string portStr = ss.str();
 
 	struct addrinfo hints;
@@ -43,7 +44,7 @@ void	ServerSocket::init()
 	
 	struct addrinfo *res;
 
-	if (getaddrinfo(_config.getHost().c_str(), portStr.c_str(), &hints, &res) != 0)
+	if (getaddrinfo(_configs[0].getHost().c_str(), portStr.c_str(), &hints, &res) != 0)
 		throw SocketException(std::string("Failed getaddrinfo"));
 	struct addrinfo	*p;
 	
@@ -91,9 +92,9 @@ int	ServerSocket::getFd() const
 	return (_fd);
 }
 
-const ServerConfig& ServerSocket::getConfig() const
+const std::vector<ServerConfig>& ServerSocket::getConfigs() const
 {
-	return (_config);
+	return (_configs);
 }
 
 int	ServerSocket::acceptConnect()

@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 18:46:29 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/07 18:18:21 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,23 +32,22 @@ class Client
 		};
 	
 	private:
-		int					_fd;
-		const ServerConfig&	_config;	
-		HttpRequest			_request;
-		HttpResponse		_response;
-		std::string			_responseBuffer;
-		State				_state;
-		
-		Client(const Client& other);
-		Client&	operator=(const Client& other);
+		int							_fd;
+		std::vector<ServerConfig>   _configs;
+		const ServerConfig*			_activeConfig;
+		HttpRequest					_request;
+		HttpResponse				_response;
+		std::string					_responseBuffer;
+		State						_state;
 		
 		CgiHandler			_cgi;
 		bool				_isCgiRequest;
-
 		time_t				_lastActivity;
-
+				
+		Client(const Client& other);
+		Client&	operator=(const Client& other);
 	public:
-		Client(int fd, const ServerConfig& config);
+		Client(int fd, const std::vector<ServerConfig>& configs);
 		~Client();
 
 		int					getFd() const;
@@ -57,6 +56,7 @@ class Client
 		const HttpRequest&	getRequest() const;
 		const HttpResponse&	getResponse() const;
 
+		void				resolveActiveConfig();
 		bool				readData();
 		bool				writeData();
 

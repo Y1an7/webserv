@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/07 14:01:04 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/07 18:04:21 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -178,7 +178,7 @@ void	Server::acceptNewClient(ServerSocket* server)
 		return ;
 	}
 	
-	Client* newClient = new Client(clientFd, server->getConfig());
+	Client* newClient = new Client(clientFd, server->getConfigs());
 	_clients[clientFd] = newClient;
 	std::cout << "New client accepted on FD: " << clientFd << std::endl;
 }
