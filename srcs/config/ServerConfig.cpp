@@ -24,6 +24,7 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& other)
 		this->_errorPages = other._errorPages;
 		this->_clientMaxBodySize = other._clientMaxBodySize;
 		this->_locations = other._locations;
+		this->_index = other._index;
 	}
 	return *this;
 }
@@ -43,6 +44,11 @@ void	ServerConfig::setHost(const std::string& host)
 void	ServerConfig::setRoot(const std::string& root)
 {
 	this->_root = root;
+}
+
+void	ServerConfig::addIndex(const std::string& indexPage)
+{
+	this->_index.push_back(indexPage);
 }
 
 void	ServerConfig::addServerNames(const std::string& serverNames)
@@ -78,6 +84,11 @@ const std::string& ServerConfig::getHost() const
 const std::string& ServerConfig::getRoot() const
 {
 	return this->_root;
+}
+
+const std::vector<std::string>& ServerConfig::getIndex() const
+{
+	return this->_index;
 }
 
 const std::vector<std::string>& ServerConfig::getServerNames() const

@@ -3,6 +3,7 @@
 
 # include <iostream>
 # include <cstring>
+# include <string>
 # include <map>
 # include <vector>
 # include <sys/types.h>
@@ -42,6 +43,7 @@ private:
 	std::string		_outputBuffer;
 
 	struct timeval	_startTime;
+	std::string		_scriptDir; //cgi is chdir()ed here before execve
 
 	void			_buildEnvp(const CgiRequest& req);
 	void			_buildArgv(const CgiRequest& req);
