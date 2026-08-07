@@ -20,6 +20,7 @@ private:
 	void	parseListen(ServerConfig& server);
 	void	parseHost(ServerConfig& server);
 	void	parseRoot(ServerConfig& server);
+	void	parseIndex(ServerConfig& server);
 	void	parseErrorPage(ServerConfig& server);
 	void	parseServerName(ServerConfig& server);
 	void	parseClientMaxBodySize(ServerConfig& server);

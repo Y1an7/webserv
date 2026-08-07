@@ -135,6 +135,9 @@ void	ConfigParser::parseServerBlock()
 
 		else if (this->_tokens[this->_pos] == "root")
 			this->parseRoot(newServer);
+
+		else if (this->_tokens[this->_pos] == "index")
+			this->parseIndex(newServer);
 	
 		else if (this->_tokens[this->_pos] == "location")
 		{
@@ -220,6 +223,23 @@ void	ConfigParser::parseRoot(ServerConfig& server)
 		this->_pos++;
 	}
 	server.setRoot(rootPath);
+}
+
+void	ConfigParser::parseIndex(ServerConfig& server)
+{
+	this->_pos++;
+	if (this->_pos >= this->tokenize() || this->_tokens[this->_pos] == ";")
+		throw ConfigParser::SyntaxException();
+
+	while (this->_pos < this->_tokens.size() && this->_tokens[this->_pos] != ";")
+	{
+		server.addIndex(this->_tokens[this->_pos]);
+		this->_pos++;
+	}
+
+	if (this->_pos >= this->tokenize() || this->_tokens[this->_pos] != ";")
+		throw ConfigParser::SyntaxException();
+	this->_pos++;
 }
 
 

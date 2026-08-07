@@ -213,8 +213,34 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 
 bool CgiHandler::initCgi(const CgiRequest& req)
 {
-	_buildEnvp(req);
-	_buildArgv(req);
+	CgiRequest abs = req;
+	std::string die = ".";
+	std::string base = abs.scriptPath;
+	std::string::size_type slash = abs.scriptPath.find_last_not_of('/');
+	if (slash != std::string::npos)
+	{
+		dir = abs.scriptPath.substr(0, slash); //directory
+		base = abs.scriptPath.substr(slash +1); //filename
+	}
+	char realDir[PATH_MAX];
+	if (realpath(dir.c_str(), realDir) != NULL)
+	{
+		_scriptDir = realDir;
+		abs.scriptPath = std::string(realDir) + "/" + base;
+	}
+	else
+		_scriptDir = dir;
+
+	if (!abs.executorPath.empty())
+	{
+		char realExec[PATH_MAX];
+		if(realpath(abs.executorPath.c_str(), realExec) != NULL)
+			abs.executorPath = realExec;
+	}
+
+	_buildEnvp(abs);
+	_buildArgv(abs);
+
 	_inputBuffer = req.httpBody;
 	_outputBuffer = "";
 
@@ -256,12 +282,8 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 
 		close(_pipe_in[0]); close(_pipe_in[1]);
 		close(_pipe_out[0]); close(_pipe_out[1]);
-		std::cerr << "--- [DEBUG] CGI Environment Variables ---" << std::endl;
-        for (int i = 0; _envp[i] != NULL; ++i)
-        {
-            std::cerr << _envp[i] << std::endl;
-        }
-        std::cerr << "-----------------------------------------" << std::endl;
+		if (!_scriptDir.empty())
+			chdir(_scriptDir.c_str());
 		execve(_argv[0], _argv, _envp);
 
 		std::cerr << "[CGI Error] execve failed for " << _argv[0]
