@@ -9,6 +9,7 @@
 
 
 Server* g_server = NULL;
+volatile sig_atomic_t g_isRunning = 1;
 
 
 void handle_signal(int sig)
@@ -16,12 +17,7 @@ void handle_signal(int sig)
 	(void)sig;
 	std::cout << "\n[SIGINT/SIGQUIT] Shutting down webserv gracefully..." << std::endl;
 
-	if (g_server)
-	{
-		delete g_server;
-		g_server = NULL;
-	}
-	exit(0);
+	g_isRunning = 0;
 }
 
 
@@ -58,6 +54,16 @@ int main(int argc, char **argv)
 		// 4.initialize the main server structure
 		g_server = new Server();
 
+		std::cout << "Total parsed servers: " << serverConfigs.size() << std::endl;
+		
+		//debug printing listen host：port
+		for (size_t i = 0; i < serverConfigs.size(); ++i) 
+		{
+		 std::cout << "Server " << i << " -> Host: " << serverConfigs[i].getHost() 
+		     		<< ", Port: " << serverConfigs[i].getPort() << std::endl;
+		}
+
+
 		for (size_t i = 0; i < serverConfigs.size(); ++i)
 		{
 			ServerSocket* newSocket = new ServerSocket(serverConfigs[i]);
@@ -89,6 +95,11 @@ int main(int argc, char **argv)
 			g_server = NULL;
 		}
 		return 1;
+	}
+	if (g_server)
+    {
+		delete g_server;
+		g_server = NULL;
 	}
 	return 0;
 }

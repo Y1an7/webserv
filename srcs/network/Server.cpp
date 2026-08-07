@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/06 14:42:34 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/07 14:01:04 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,9 @@
 #include <unistd.h>
 #include <cstring>
 #include <cerrno>
+#include <csignal>
+
+extern volatile sig_atomic_t g_isRunning;
 
 Server::Server() :_epollFd(-1)
 {
@@ -66,7 +69,7 @@ void	Server::run()
 {
 	std::cout << "Starting server main event loop..." << std::endl;
 	
-	while (true)
+	while (g_isRunning)
 	{
 		int	numEvents = epoll_wait(_epollFd, _events, MAX_EVENTS, 1000);
 		if (numEvents == -1)
