@@ -6,6 +6,7 @@
 #include <csignal>
 #include <cstdlib>
 #include <vector>
+#include <sstream>
 
 
 Server* g_server = NULL;
@@ -52,6 +53,17 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		// 4.initialize the main server structure
+
+		std::map<std::string, std::vector<ServerConfig> >	groupedConfigs;
+		for (size_t i = 0; i < serverConfigs.size(); ++i)
+		{
+			std::string host = serverConfigs[i].getHost();
+
+			std::stringstream ss;
+			ss << host << ":" << serverConfigs[i].getPort();
+			std::string key = ss.str();
+			groupedConfigs[key].push_back(serverConfigs[i]);
+		}
 		g_server = new Server();
 
 		std::cout << "Total parsed servers: " << serverConfigs.size() << std::endl;
@@ -63,16 +75,16 @@ int main(int argc, char **argv)
 		     		<< ", Port: " << serverConfigs[i].getPort() << std::endl;
 		}
 
-
-		for (size_t i = 0; i < serverConfigs.size(); ++i)
+		std::map<std::string, std::vector<ServerConfig> >::iterator it;
+		for (it = groupedConfigs.begin(); it != groupedConfigs.end(); ++it)
 		{
-			ServerSocket* newSocket = new ServerSocket(serverConfigs[i]);
+			ServerSocket* newSocket = new ServerSocket(it->second);
 			try
 			{
 				newSocket->init();
 				g_server->addServerSocket(newSocket);
-				std::cout << "✅ Listening on Host: " << serverConfigs[i].getHost()
-					<< "Port: " << serverConfigs[i].getPort() << std::endl;
+				std::cout << "✅ Listening on: " << it->first
+					<< " (Contains " << it->second.size() << " server blocks)" << std::endl;
 			}
 			catch (const std::exception& e)
 			{
