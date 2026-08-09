@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/04 15:57:45 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/09 21:03:37 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -343,24 +343,40 @@ void RequestHandler::handleError(int statusCode)
 {
 	_response.setStatusCode(statusCode);
 	std::string errorPagePath = _config.getErrorPages(statusCode);
+	
+	bool	customErrorPage = false;
 
-	if (!errorPagePath.empty())
+	if (_request.getMethod() != HttpRequest::HEAD)
 	{
-		struct stat fileState;
-		if (stat(errorPagePath.c_str(), &fileState) == 0 && !S_ISDIR(fileState.st_mode))
+		if (!errorPagePath.empty())
 		{
-			int fd = open(errorPagePath.c_str(), O_RDONLY);
-			if (fd != -1)
+			std::string root = _config.getRoot();
+			while (!root.empty() && root[root.length() - 1] == '/')
+				root.erase(root.length() - 1);
+			if (errorPagePath[0] != '/')
+				errorPagePath = "/" + errorPagePath;
+			std::string fullPath = root + errorPagePath;
+			
+			std::ifstream file(fullPath.c_str(), std::ios::binary);
+			if (file.is_open())
 			{
-				_response.setFile(fd, fileState.st_size);
-				_response.setHeader("Content-Type", getMimeType(errorPagePath));
-				if (_request.getMethod() == HttpRequest::HEAD)
-					_response.discardBodyForHead();
-				return ;
+                std::ostringstream ss;
+                ss << file.rdbuf();
+
+                _response.setBody(ss.str());
+                _response.setHeader("Content-Type", getMimeType(fullPath));
+
+                std::stringstream lenStr;
+                lenStr << ss.str().length();
+                _response.setHeader("Content-Length", lenStr.str());
+
+				customErrorPage = true;
+					return ;
 			}
 		}
 	}
-	_response.generateDefaultErrorPage();
+	if (!customErrorPage)
+		_response.generateDefaultErrorPage();
 	if (_request.getMethod() == HttpRequest::HEAD)
 		_response.discardBodyForHead();
 }

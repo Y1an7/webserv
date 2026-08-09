@@ -40,7 +40,7 @@ public:
 	int									getPort() const;
 	const std::string&					getHost() const;
 	const std::string&					getRoot() const;
-	const std::string<std::string>&		getIndex() const;
+	const std::vector<std::string>&		getIndex() const;
 	const std::vector<std::string>&		getServerNames() const;
 	std::string							getErrorPages(int statusCode) const;
 	size_t 								getClientMaxBodySize() const;

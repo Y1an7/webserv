@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/07 18:41:11 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/09 22:23:12 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,6 @@
 #include "RequestHandler.hpp"
 #include <sys/socket.h>
 #include <unistd.h>
-#include <cerrno>
 #include <iostream>
 #include <sstream>
 
@@ -64,7 +63,7 @@ void	Client::resolveActiveConfig()
 	size_t	colonPos = hostHeader.find(':');
 	if (colonPos != std::string::npos)
 		hostHeader = hostHeader.substr(0, colonPos);
-	
+
 	_activeConfig = &(_configs[0]);
 	bool foundMatch = false;
 	for (size_t i = 0; i < _configs.size(); ++i)
@@ -119,8 +118,6 @@ bool	Client::readData()
 	}
 	else
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return (true);
 		std::cerr << "Error: Read error on fd " << _fd << ". Closing connection." << std::endl;
 		_state = CLOSE_CONNECTION;
 		return (false);
@@ -185,8 +182,6 @@ bool	Client::writeData()
 	
 	else if (bytesSend == -1)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return (true);
 		std::cerr << "Client write error on FD " << this->_fd << std::endl;
 		_state = CLOSE_CONNECTION;
 		return (false);
@@ -337,16 +332,12 @@ bool    Client::checkAndInitCgi()
         while (!rootDir.empty() && rootDir[rootDir.length() - 1] == '/')
             rootDir.erase(rootDir.length() - 1);
             
-        std::string leftoverUri = pathOnly;
-        std::string locPath = matchedLoc->getPath();
+        std::string fullUri = pathOnly;
         
-        if (leftoverUri.find(locPath) == 0)
-            leftoverUri.erase(0, locPath.length());
-            
-        if (leftoverUri.empty() || leftoverUri[0] != '/')
-            leftoverUri = "/" + leftoverUri;
+        if (fullUri.empty() || fullUri[0] != '/')
+            fullUri = "/" + fullUri;
 
-        cgiReq.scriptPath = rootDir + leftoverUri;
+        cgiReq.scriptPath = rootDir + fullUri;
 
         while (!cgiReq.scriptPath.empty() &&
             (cgiReq.scriptPath[cgiReq.scriptPath.length() - 1] == '\r' || 

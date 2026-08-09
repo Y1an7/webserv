@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <errno.h>
+#include <climits>
 
 CgiHandler::CgiHandler() : _envp(NULL), _argv(NULL), _pid(-1)
 {
@@ -214,7 +215,7 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 bool CgiHandler::initCgi(const CgiRequest& req)
 {
 	CgiRequest abs = req;
-	std::string die = ".";
+	std::string dir = ".";
 	std::string base = abs.scriptPath;
 	std::string::size_type slash = abs.scriptPath.find_last_not_of('/');
 	if (slash != std::string::npos)
