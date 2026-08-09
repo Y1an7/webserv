@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 20:50:40 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/29 18:48:07 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/09 19:18:09 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,7 +124,11 @@ const std::map<std::string, std::string>& HttpRequest::getHeaders() const
 
 std::string	HttpRequest::getHeader(const std::string& key) const
 {
-	std::map<std::string, std::string>::const_iterator it = _headers.find(key);
+	std::string lowerKey = key;
+	for (size_t i = 0; i < lowerKey.length(); ++i)
+        lowerKey[i] = ::tolower(static_cast<unsigned char>(lowerKey[i]));
+
+	std::map<std::string, std::string>::const_iterator it = _headers.find(lowerKey);
 	if (it != _headers.end())
 		return it->second;
 	return "";

@@ -228,7 +228,7 @@ void	ConfigParser::parseRoot(ServerConfig& server)
 void	ConfigParser::parseIndex(ServerConfig& server)
 {
 	this->_pos++;
-	if (this->_pos >= this->tokenize() || this->_tokens[this->_pos] == ";")
+	if (this->_pos >= _tokens.size() || this->_tokens[this->_pos] == ";")
 		throw ConfigParser::SyntaxException();
 
 	while (this->_pos < this->_tokens.size() && this->_tokens[this->_pos] != ";")
@@ -237,7 +237,7 @@ void	ConfigParser::parseIndex(ServerConfig& server)
 		this->_pos++;
 	}
 
-	if (this->_pos >= this->tokenize() || this->_tokens[this->_pos] != ";")
+	if (this->_pos >= _tokens.size() || this->_tokens[this->_pos] != ";")
 		throw ConfigParser::SyntaxException();
 	this->_pos++;
 }
