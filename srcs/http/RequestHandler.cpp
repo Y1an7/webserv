@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/09 21:03:37 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/10 22:36:33 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,19 @@ RequestHandler::RequestHandler(const HttpRequest& req, HttpResponse& res, const 
 
 RequestHandler::~RequestHandler() {}
 
+void	RequestHandler::handleRedirect()
+{
+	int 		code = _matchedLocation->getRedirectCode();
+	std::string	url = _matchedLocation->getRedirectUrl();
+
+	_response.setStatusCode(code);
+	_response.setHeader("Location", url);
+	_response.setHeader("Content-Type", "text/html");
+	_response.setBody("<html>...The document has moved <a href=\"" + url + "\">here</a>...</html>");
+	if (_request.getMethod() == HttpRequest::HEAD)
+		_response.discardBodyForHead();
+}
+
 void	RequestHandler::execute()
 {
 	if (_request.getState() == HttpRequest::PARSE_ERROR)
@@ -37,6 +50,11 @@ void	RequestHandler::execute()
 	else
 	{
 		matchLocation();
+		if (_matchedLocation != NULL && _matchedLocation->getRedirectCode() != 0)
+		{
+			handleRedirect();
+			return ;
+		}
 		if (!isMethodAllowed())
 		{
 			handleError(405);
@@ -92,9 +110,12 @@ void	RequestHandler::handleGet()
 			_resolvedPath += '/';
 		}
 		
+		std::vector<std::string> indices; //location level index first, then server level index
 		if (_matchedLocation != NULL)
+			indices = _matchedLocation->getIndex();
+		if (indices.empty())
+			indices = _config.getIndex();
 		{
-			const std::vector<std::string>& indices = _matchedLocation->getIndex();
 			for (size_t i = 0; i < indices.size(); ++i)
 			{
 				std::string testPath = _resolvedPath + indices[i];
@@ -258,6 +279,31 @@ void RequestHandler::handlePost()
 	struct stat fileStat;
 	bool isDirectory = false;
 
+	if (_matchedLocation != NULL && !_matchedLocation->getUploadStore().empty())
+	{
+		std::string store = _matchedLocation->getUploadStore();
+		while (!store.empty() && store[store.length() - 1] == '/')
+			store.erase(store.length() - 1);
+		
+		std::string uri = _request.getUri();
+		size_t q = uri.find('?');
+		if (q != std::string::npos)
+			uri.erase(q);
+		std::string base = uri.substr(uri.find_last_of('/') + 1);
+		if (base.empty() || base == "." || base == ".." || base.find('/') != std::string::npos)
+		{
+			handleError(400);
+			return ;
+		}
+
+		struct stat storeStat;
+		if (stat(store.c_str(), &storeStat) != 0 || !S_ISDIR(storeStat.st_mode))
+		{
+			handleError(500);
+			return ;
+		}
+		_resolvedPath = store + "/" + base;
+	}
 	if (stat(_resolvedPath.c_str(), &fileStat) == 0)
 	{
 		if (S_ISDIR(fileStat.st_mode))

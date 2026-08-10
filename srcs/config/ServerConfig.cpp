@@ -5,7 +5,7 @@ ServerConfig::ServerConfig()
 	this->_port = 0;
 	this->_host = "127.0.0.1";
 	this->_root = ".";
-	this->_clientMaxBodySize = 0;
+	this->_clientMaxBodySize = 1048576;
 }
 
 ServerConfig::ServerConfig(const ServerConfig& other)
