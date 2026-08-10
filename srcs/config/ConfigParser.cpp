@@ -415,6 +415,34 @@ void	ConfigParser::parseLocationBlock(ServerConfig& server)
 			this->parseLocationClientMaxBodySize(newLocation);
 			continue ;
 		}
+		else if (directive == "return")
+		{
+			if (this->_pos = this->_tokens.size())
+				throw ConfigParser::SyntaxException();
+			const std::string& codeTok = this->_tokens[this->_pos];
+			for (size_t i = 0; i < codeTok.length(); ++i)
+			{
+				if (!std::isdigit(static_cast<unsigned char>(codeTok[i])))
+					throw ConfigParser::SyntaxException();
+			}
+			int code;
+			std::stringstream ss(codeTok);
+			ss >> code;
+			if (code < 300 || code > 399)
+				throw ConfigParser::SyntaxException();
+			this->_pos++;
+			if (this->_pos >= this->_tokens.size() || this->tokenize[this->_pos] == ";")
+				throw ConfigParser::SyntaxException();
+			newLocation.setRedirect(code, this->_tokens[this->_pos]);
+			this->_pos++;
+		}
+		else if (directive == "upload_store")
+		{
+			if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] == ";")
+				throw ConfigParser::SyntaxException();
+			newLocation.setUploadStore(this->_tokens[this->_pos]);
+			this->_pos++;
+		}
 		else
 			throw ConfigParser::SyntaxException();
 		

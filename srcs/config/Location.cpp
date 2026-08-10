@@ -9,6 +9,9 @@ Location::Location()
 	this->_cgiPath = "";
 	this->_clientMaxBodySize = 0;
 	this->_hasClientMaxBodySize = false;
+	this->_redirectCode = 0;
+	this->_redirectUrl = "";
+	this->_uploadStore = "";
 }
 
 Location::Location(const Location& other)
@@ -29,6 +32,9 @@ Location& Location::operator=(const Location& other)
 		this->_cgiPath = other._cgiPath;
 		this->_clientMaxBodySize = other._clientMaxBodySize;
 		this->_hasClientMaxBodySize = other._hasClientMaxBodySize;
+		this->_redirectCode = other._redirectCode;
+		this->_redirectUrl = other._redirectUrl;
+		this->_uploadStore = other._uploadStore;
 	}
 	return *this;
 }
