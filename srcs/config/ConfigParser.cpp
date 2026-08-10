@@ -246,28 +246,40 @@ void	ConfigParser::parseIndex(ServerConfig& server)
 void	ConfigParser::parseErrorPage(ServerConfig& server)
 {
 	this->_pos++;
-	if (this->_pos >= this->_tokens.size())
-		throw ConfigParser::SyntaxException();
-	
-	std::string codeStr = this->_tokens[this->_pos]; //error code like 404
-	size_t i = 0;
-	while (i < codeStr.length())
+
+	std::vector<int> codes;
+	while (this->_pos < this->_tokens.size() && this->_tokens[this->_pos] != ";")
 	{
-		if (!std::isdigit(codeStr[i]))
+		const std::string& tok = this->_tokens[this->_pos];
+		bool allDigit = !tok.empty();
+		for (size_t i = 0; i < tok.length(); ++i)
+		{
+			if (!std::isdigit(static_cast<unsigned char>(tok[i])))
+			{
+				allDigit = false;
+				break ;
+			}
+		}
+		if (!allDigit)
+			break ;
+		int code;
+		std::stringstream ss(tok);
+		ss >> code;
+		if (code < 300 || code > 599)
 			throw ConfigParser::SyntaxException();
-		i++;
+		codes.push_back(code);
+		this->_pos++;
 	}
 
-	int code;
-	std::stringstream ss(codeStr);
-	ss >> code;
-
-	this->_pos++;
-	if (this->_pos >= this->_tokens.size())
+	if (codes.empty() || this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] == ";")
 		throw ConfigParser::SyntaxException();
-	
-	std::string errorFile = this->_tokens[this->_pos]; //file path like /404.html
-	server.setErrorPages(code, errorFile);
+	std::string errorFile = this->_tokens[this->_pos];
+	this->_pos++;
+	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
+		throw ConfigParser::SyntaxException();
+	this->_pos++;
+	for (size_t i = 0; i < codes.size(); ++i)
+		server.setErrorPages(codes[i], errorFile);
 
 	this->_pos++;
 	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")

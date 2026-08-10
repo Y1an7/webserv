@@ -218,7 +218,7 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	CgiRequest abs = req;
 	std::string dir = ".";
 	std::string base = abs.scriptPath;
-	std::string::size_type slash = abs.scriptPath.find_last_not_of('/');
+	std::string::size_type slash = abs.scriptPath.find_last_of('/');
 	if (slash != std::string::npos)
 	{
 		dir = abs.scriptPath.substr(0, slash); //directory
@@ -284,8 +284,8 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 
 		close(_pipe_in[0]); close(_pipe_in[1]);
 		close(_pipe_out[0]); close(_pipe_out[1]);
-		if (!_scriptDir.empty())
-			chdir(_scriptDir.c_str());
+		if (!_scriptDir.empty() && chdir(_scriptDir.c_str()) == -1)
+			_exit(1);
 		execve(_argv[0], _argv, _envp);
 
 		std::cerr << "[CGI Error] execve failed for " << _argv[0]
@@ -333,13 +333,7 @@ bool CgiHandler::writeToCgi()
 		return true;
 	}
 
-	else if (bytesWritten == -1)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
-		_state = CGI_ERROR;
-		return false;
-	}
+	_state = CGI_ERROR;
 	return false;
 }
 
@@ -371,13 +365,8 @@ bool	CgiHandler::readFromCgi()
 		return true;
 	}
 
-	else
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
-		_state = CGI_ERROR;
-		return false;
-	}
+	_state = CGI_ERROR;
+	return false;
 }
 
 bool	CgiHandler::checkTimeout(long timeoutSeconds)

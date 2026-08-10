@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:01 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/27 09:24:08 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/10 21:31:54 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@ class RequestHandler
 		void		handlePost();
 		void		handleDelete();
 		void		handleError(int statusCode);
+		void		handleRedirect();
 
 		void		handleCgi();
 		bool		isCgi(const std::string& path) const;
