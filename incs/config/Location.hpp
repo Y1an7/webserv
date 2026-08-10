@@ -18,6 +18,9 @@ private:
 	std::string					_cgiPath;
 	size_t						_clientMaxBodySize;
 	bool						_hasClientMaxBodySize;
+	int							_redirectCode; //0 = no redirect
+	std::string					_redirectUrl;
+	std::string					_uploadStore;
 
 public:
 	Location();
@@ -34,6 +37,8 @@ public:
 	void	setCgiPath(const std:: string& cgiPath);
 	void	setCgiExtension(const std::string& cgiExt);
 	void	setClientMaxBodySize(size_t size);
+	void	setRedirect(int code, const std::string& url);
+	void	setUploadStore(const std::string path);
 
 
 	//getters
@@ -46,6 +51,9 @@ public:
 	const std::string&				getCgiExtension() const;
 	size_t							getClientMaxBodySize() const;
 	bool							hasClientMaxBodySize() const;
+	int								getRedirectCode() const;
+	const std::string&				getRedirectUrl() const;
+	const std::string&				getUploadStore() const;
 };
 
 #endif
