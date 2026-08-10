@@ -147,8 +147,9 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	envVars.push_back("REQUEST_METHOD=" + req.method);
 	envVars.push_back("QUERY_STRING=" + req.queryString);
 	envVars.push_back("SCRIPT_FILENAME=" + req.scriptPath);
-	envVars.push_back("PATH_INFO=" + req.scriptPath);
-	envVars.push_back("SCRIPT_NAME=" + req.scriptPath);
+	envVars.push_back("PATH_INFO=" + req.uri);
+	envVars.push_back("SCRIPT_NAME=" +req.uri);
+	envVars.push_back("REQUEST_URI=" + req.uri);
 	envVars.push_back("REDIRECT_STATUS=200");
 
 	std::string host = "127.0.0.1";
@@ -314,8 +315,6 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	return true;
 }
 
-
-
 bool CgiHandler::writeToCgi()
 {
 	if (_pipe_in[1] == -1)
@@ -343,7 +342,6 @@ bool CgiHandler::writeToCgi()
 	}
 	return false;
 }
-
 
 bool	CgiHandler::readFromCgi()
 {

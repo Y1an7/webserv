@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/09 22:23:12 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/10 17:11:28 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -319,6 +319,7 @@ bool    Client::checkAndInitCgi()
         CgiRequest  cgiReq;
         cgiReq.method = _request.getMethodStr();
         cgiReq.queryString = queryString;
+		cgiReq.uri = pathOnly;
 
         std::string rootDir;
         if (!matchedLoc->getRoot().empty())
@@ -333,11 +334,23 @@ bool    Client::checkAndInitCgi()
             rootDir.erase(rootDir.length() - 1);
             
         std::string fullUri = pathOnly;
+		size_t lastSlash = pathOnly.find_last_of('/');
+        if (lastSlash != std::string::npos)
+        {
+            // 如果是在子目录里请求脚本，直接取文件名或调整相对路径
+            // 这里为了通用，确保不会把 location 前缀重复拼进去：
+            std::string fileName = pathOnly.substr(lastSlash);
+            cgiReq.scriptPath = rootDir + fileName;
+        }
+        else
+        {
+            cgiReq.scriptPath = rootDir + "/" + pathOnly;
+        }
         
-        if (fullUri.empty() || fullUri[0] != '/')
-            fullUri = "/" + fullUri;
+        // if (fullUri.empty() || fullUri[0] != '/')
+        //     fullUri = "/" + fullUri;
 
-        cgiReq.scriptPath = rootDir + fullUri;
+        // cgiReq.scriptPath = rootDir + fullUri;
 
         while (!cgiReq.scriptPath.empty() &&
             (cgiReq.scriptPath[cgiReq.scriptPath.length() - 1] == '\r' || 
