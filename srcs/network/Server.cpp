@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/07 18:04:21 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/10 17:57:30 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -319,7 +319,6 @@ void	Server::removeClient(int clientFd)
 	}
 }
 
-
 void	Server::handleCgiWrite(int fd)
 {
 	Client* client = _cgiWriteFds[fd];
@@ -331,11 +330,8 @@ void	Server::handleCgiWrite(int fd)
 	{
 			std::cout << "writeToCgi returned false!" << std::endl;		{
 			cleanupCgiFds(fd, false);
-			client->setState(Client::WRITING_RESPONSE);
-			client->prepareHttpResponse();
 		}
 	}
-
 	if (cgi.getState() == CgiHandler::CGI_READING)
 		cleanupCgiFds(fd, false);
 }
@@ -372,6 +368,7 @@ void	Server::handleCgiRead(int fd)
 void	Server::cleanupCgiFds(int fd, bool isReadFd)
 {
 	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
+	close(fd);
 	if (isReadFd)
 		_cgiReadFds.erase(fd);
 	else

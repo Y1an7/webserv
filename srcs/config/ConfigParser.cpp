@@ -417,7 +417,7 @@ void	ConfigParser::parseLocationBlock(ServerConfig& server)
 		}
 		else if (directive == "return")
 		{
-			if (this->_pos = this->_tokens.size())
+			if (this->_pos == this->_tokens.size())
 				throw ConfigParser::SyntaxException();
 			const std::string& codeTok = this->_tokens[this->_pos];
 			for (size_t i = 0; i < codeTok.length(); ++i)
@@ -431,7 +431,7 @@ void	ConfigParser::parseLocationBlock(ServerConfig& server)
 			if (code < 300 || code > 399)
 				throw ConfigParser::SyntaxException();
 			this->_pos++;
-			if (this->_pos >= this->_tokens.size() || this->tokenize[this->_pos] == ";")
+			if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] == ";")
 				throw ConfigParser::SyntaxException();
 			newLocation.setRedirect(code, this->_tokens[this->_pos]);
 			this->_pos++;

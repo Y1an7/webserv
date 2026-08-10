@@ -82,6 +82,17 @@ void	Location::setClientMaxBodySize(size_t size)
 	this->_hasClientMaxBodySize = true;
 }
 
+void Location::setRedirect(int code, const std::string& uri)
+{
+	_redirectCode = code;
+	_redirectUrl = uri;
+}
+
+void Location::setUploadStore(std::string path)
+{
+	_uploadStore = path;
+}
+
 const std::string& Location::getPath() const
 {
 	return this->_path;
