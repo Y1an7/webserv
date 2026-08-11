@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:36:23 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/29 18:51:12 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/11 21:46:24 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@ class HttpResponse
 	private:
 		std::string							_version;
 		int									_statusCode;
+		bool								_mustClose;
 		std::string							_statusMessage;
 		std::map<std::string, std::string>	_headers;
 		std::string							_body;
@@ -52,6 +53,8 @@ class HttpResponse
 		void				addBytesSent(size_t bytes);
 		
 		void				setStatusCode(int code);
+		void				setMustClose(bool v);
+		bool				mustClose() const;
 		void				setStatusMessage(const std::string& message);
 		void				setHeader(const std::string& key, const std::string& value);
 		void				setBody(const std::string& body);

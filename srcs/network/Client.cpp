@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 15:20:40 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/11 22:02:08 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 #include <iostream>
 #include <sstream>
 
-Client::Client(int fd, const std::vector<ServerConfig>& configs) : _fd(fd), _configs(configs), _state(READING_REQUEST), _isCgiRequest(false)
+Client::Client(int fd, const std::vector<ServerConfig>& configs) : _fd(fd), _configs(configs), _sendOffset(0), _state(READING_REQUEST), _isCgiRequest(false)
 {
 	updateLastActivity();
 	if (!_configs.empty())
@@ -84,6 +84,12 @@ void	Client::resolveActiveConfig()
 	_request.setMaxBodySize(_activeConfig->getClientMaxBodySize());
 }
 
+void	Client::setResponseBuffer(const std::string& data)
+{
+	_responseBuffer = data;
+	_sendOffset = 0;
+}
+
 bool	Client::readData()
 {
 	char	buffer[8192];
@@ -126,8 +132,11 @@ bool	Client::readData()
 
 bool	Client::writeData()
 {
-	if (_responseBuffer.empty())
+	if (_sendOffset >= _responseBuffer.length())
 	{
+		_responseBuffer.clear();
+		_sendOffset = 0;
+
 		int fd = _response.getFileFd();
 		if (fd != -1)
 		{
@@ -153,10 +162,23 @@ bool	Client::writeData()
 		}
 	}
 
-	if (_responseBuffer.empty())
+	if (_sendOffset >= _responseBuffer.length())
 	{
+		_responseBuffer.clear();
+		_sendOffset = 0;
+
 		std::string reqConnection = _request.getHeader("Connection");
 		if (reqConnection == "close")
+		{
+			_state = CLOSE_CONNECTION;
+			return (false);
+		}
+
+		std::string conn = _request.getHeader("Connection");
+		for (size_t i = 0; i < conn.length(); ++i)
+			conn[i] = static_cast<char>(::tolower(static_cast<unsigned char>(conn[i])));
+		if (_response.mustClose() || conn.find("close") != std::string::npos
+			 || _request.getState() == HttpRequest::PARSE_ERROR)
 		{
 			_state = CLOSE_CONNECTION;
 			return (false);
@@ -166,20 +188,31 @@ bool	Client::writeData()
 		_response.reset();
 		_isCgiRequest = false;
 		_cgi.killCgi();
+		_cgi.reset();
 		_request.setMaxBodySize(_activeConfig->getClientMaxBodySize());
 		_state = READING_REQUEST;
 		updateLastActivity();
 		return (true);
 	}
 
-	ssize_t	bytesSend = send(_fd, _responseBuffer.c_str(), _responseBuffer.length(), 0);
+	if (_sendOffset > _responseBuffer.length())
+		_sendOffset = 0;
+	size_t chunk = _responseBuffer.length() - _sendOffset;
+	if (chunk > 65536)
+		chunk = 65536;
+	ssize_t bytesSend = send(_fd, _responseBuffer.c_str() + _sendOffset, chunk, 0);
 	if (bytesSend > 0)
 	{
 		updateLastActivity();
-		_responseBuffer.erase(0, bytesSend);
+		_sendOffset += static_cast<size_t>(bytesSend);
+		if (_sendOffset >= _responseBuffer.length())
+		{
+			_responseBuffer.clear();
+			_sendOffset = 0;
+		}
 		return (true);
 	}
-	
+
 	else if (bytesSend == -1)
 	{
 		std::cerr << "Client write error on FD " << this->_fd << std::endl;
@@ -202,7 +235,7 @@ void	Client::prepareHttpResponse()
 				<< "Content-Type: text/html\r\n"
 				<< "Content-Length: " << body.length() << "\r\n\r\n"
 				<< body;
-			_responseBuffer = ss.str();
+			setResponseBuffer(ss.str());
 		}
 		else
 		{
@@ -242,11 +275,11 @@ void	Client::prepareHttpResponse()
 					<< remainingHeaders
 					<< "Content-Length: " << cgiBody.length() << "\r\n\r\n"
 					<< cgiBody;
-				_responseBuffer = ss.str();
+				setResponseBuffer(ss.str());
 			}
 			else
 			{
-				_responseBuffer = "HTTP/1.1 200 OK\r\n\r\n" + cgiOutPut;
+				setResponseBuffer("HTTP/1.1 200 OK\r\n\r\n" + cgiOutPut);
 			}
 		}
 		return ;
@@ -256,7 +289,7 @@ void	Client::prepareHttpResponse()
 	handler.execute();
 
 	std::string headerStr = _response.buildAndGetHeaderString();
-	_responseBuffer = headerStr;
+	setResponseBuffer(headerStr);
 
 	if (_response.getFileFd() == -1 && _response.getStatusCode() != 204)
 		_responseBuffer += _response.getBody();
@@ -400,6 +433,6 @@ void	Client::handleTimeout()
 	}
 	
 	_response.generateDefaultErrorPage();
-	_responseBuffer = _response.buildAndGetHeaderString() + _response.getBody();
+	setResponseBuffer(_response.buildAndGetHeaderString() + _response.getBody());
 	_state = WRITING_RESPONSE;
 }
