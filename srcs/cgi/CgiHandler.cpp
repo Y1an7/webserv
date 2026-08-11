@@ -17,6 +17,7 @@ CgiHandler::CgiHandler() : _envp(NULL), _argv(NULL), _pid(-1)
 	_pipe_in[1] = -1;
 	_pipe_out[0] = -1;
 	_pipe_out[1] = -1;
+	_inputBytesSent = 0;
 }
 
 CgiHandler::CgiHandler(const CgiHandler& other)
@@ -319,22 +320,32 @@ bool CgiHandler::writeToCgi()
 {
 	if (_pipe_in[1] == -1)
 		return false;
-	if (_inputBuffer.empty())
+		
+	if (_inputBytesSent >= _inputBuffer.length())
 	{
 		_state = CGI_READING;
-		return false;
+		return true;
 	}
 
-	int bytesWritten = write(_pipe_in[1], _inputBuffer.c_str(), _inputBuffer.length());
+	const char* dataPtr = _inputBuffer.c_str() + _inputBytesSent;
+	size_t bytesLeft = _inputBuffer.length() - _inputBytesSent;
+	ssize_t bytesWritten = write(_pipe_in[1], dataPtr, bytesLeft);
+
 	if (bytesWritten > 0)
 	{
-		_inputBuffer.erase(0, bytesWritten);
-		if (_inputBuffer.empty())
-			_state = CGI_READING;
+		_inputBytesSent += bytesWritten;
+		if (_inputBytesSent >= _inputBuffer.length())
+		{
+			_state = CGI_READING; 
+		}
 		return true;
 	}
 	else if (bytesWritten == -1)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return true;
 		return false;
+	}
 	return false;
 }
 
