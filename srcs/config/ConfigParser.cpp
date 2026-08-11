@@ -280,11 +280,6 @@ void	ConfigParser::parseErrorPage(ServerConfig& server)
 	this->_pos++;
 	for (size_t i = 0; i < codes.size(); ++i)
 		server.setErrorPages(codes[i], errorFile);
-
-	this->_pos++;
-	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
-		throw ConfigParser::SyntaxException();
-	this->_pos++;
 }
 
 
