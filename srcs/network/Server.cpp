@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 03:33:30 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/11 15:35:35 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -348,7 +348,7 @@ void	Server::handleCgiWrite(int fd)
 	Client* client = _cgiWriteFds[fd];
 	CgiHandler& cgi = client->getCgiHandler();
 
-	std::cout << "handleCgiWrite triggered for FD: " << fd << std::endl;
+	// std::cout << "handleCgiWrite triggered for FD: " << fd << std::endl;
 
 	if (cgi.writeToCgi() == false)
 	{

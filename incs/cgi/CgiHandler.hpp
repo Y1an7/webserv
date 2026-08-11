@@ -42,6 +42,7 @@ private:
 	CgiState		_state;
 	std::string		_inputBuffer;
 	std::string		_outputBuffer;
+	size_t			_inputBytesSent;
 
 	struct timeval	_startTime;
 	std::string		_scriptDir; //cgi is chdir()ed here before execve
