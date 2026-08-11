@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/10 17:57:30 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/11 03:33:30 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,19 +138,43 @@ void	Server::run()
 		for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			Client* client = it->second;
+			if (client->getCgiHandler().checkTimeout(20))
+			{
+				int readFd  = client->getCgiHandler().getReadFd();
+				int writeFd = client->getCgiHandler().getWriteFd();
+
+				if (readFd != -1)
+				{
+					epoll_ctl(_epollFd, EPOLL_CTL_DEL, readFd, NULL);
+					_cgiReadFds.erase(readFd);
+				}
+				if (writeFd != -1)
+				{
+					epoll_ctl(_epollFd, EPOLL_CTL_DEL, writeFd, NULL);
+					_cgiWriteFds.erase(writeFd);
+				}
+				client->handleTimeout();
+				struct epoll_event ev;
+				std::memset(&ev, 0, sizeof(ev));
+				ev.events = EPOLLOUT | EPOLLRDHUP;
+				ev.data.fd = client->getFd();
+				epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
+				continue;
+			}
+
 			if (client->hasTimedOut(10))
 			{
 				client->handleTimeout();
 				if (client->getState() == Client::CLOSE_CONNECTION)
 					staleClient.push_back(client->getFd());
 				else if (client->getState() == Client::WRITING_RESPONSE)
-					{
-						struct epoll_event ev;
-						std::memset(&ev, 0, sizeof(ev));
-						ev.events = EPOLLOUT | EPOLLRDHUP;
-						ev.data.fd = client->getFd();
-						epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
-					}
+				{
+					struct epoll_event ev;
+					std::memset(&ev, 0, sizeof(ev));
+					ev.events = EPOLLOUT | EPOLLRDHUP;
+					ev.data.fd = client->getFd();
+					epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
+				}
 			}
 		}
 		for (size_t i = 0; i < staleClient.size(); ++i)
@@ -328,9 +352,8 @@ void	Server::handleCgiWrite(int fd)
 
 	if (cgi.writeToCgi() == false)
 	{
-			std::cout << "writeToCgi returned false!" << std::endl;		{
+			std::cout << "writeToCgi returned false!" << std::endl;		
 			cleanupCgiFds(fd, false);
-		}
 	}
 	if (cgi.getState() == CgiHandler::CGI_READING)
 		cleanupCgiFds(fd, false);
@@ -363,7 +386,6 @@ void	Server::handleCgiRead(int fd)
 		epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
 	}
 }
-
 
 void	Server::cleanupCgiFds(int fd, bool isReadFd)
 {

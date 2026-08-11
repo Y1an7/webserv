@@ -319,21 +319,22 @@ bool CgiHandler::writeToCgi()
 {
 	if (_pipe_in[1] == -1)
 		return false;
-	
+	if (_inputBuffer.empty())
+	{
+		_state = CGI_READING;
+		return false;
+	}
+
 	int bytesWritten = write(_pipe_in[1], _inputBuffer.c_str(), _inputBuffer.length());
 	if (bytesWritten > 0)
 	{
 		_inputBuffer.erase(0, bytesWritten);
 		if (_inputBuffer.empty())
-		{
-			close(_pipe_in[1]);
-			_pipe_in[1] = -1;
 			_state = CGI_READING;
-		}
 		return true;
 	}
-
-	_state = CGI_ERROR;
+	else if (bytesWritten == -1)
+		return false;
 	return false;
 }
 
@@ -380,8 +381,6 @@ bool	CgiHandler::checkTimeout(long timeoutSeconds)
 		if (elapsed >= timeoutSeconds)
 		{
 			std::cerr << "CGI Timeout Exceeded!" << std::endl;
-			killCgi();
-			_state = CGI_ERROR;
 			return true;
 		}
 	}
@@ -394,8 +393,18 @@ void	CgiHandler::killCgi()
 	if (_pid > 0)
 	{
 		kill(_pid, SIGKILL);
-		waitpid(_pid, NULL, WNOHANG);
+		waitpid(_pid, NULL, 0);
 		_pid = -1;
+	}
+	if (_pipe_in[1] != -1)
+	{
+		close(_pipe_in[1]);
+		_pipe_in[1] = -1;
+	}
+	if (_pipe_out[0] != -1)
+	{
+		close(_pipe_out[0]);
+		_pipe_out[0] = -1;
 	}
 }
 
