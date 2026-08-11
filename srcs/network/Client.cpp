@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/10 17:11:28 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/11 15:20:40 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -320,10 +320,14 @@ bool    Client::checkAndInitCgi()
         cgiReq.method = _request.getMethodStr();
         cgiReq.queryString = queryString;
 		cgiReq.uri = pathOnly;
+		std::string rootDir;
+		bool hasLocationRoot = false;
 
-        std::string rootDir;
         if (!matchedLoc->getRoot().empty())
+		{
             rootDir = matchedLoc->getRoot();
+			hasLocationRoot = true;
+		}
         else
             rootDir = _activeConfig->getRoot();
             
@@ -332,25 +336,18 @@ bool    Client::checkAndInitCgi()
         
         while (!rootDir.empty() && rootDir[rootDir.length() - 1] == '/')
             rootDir.erase(rootDir.length() - 1);
-            
-        std::string fullUri = pathOnly;
-		size_t lastSlash = pathOnly.find_last_of('/');
-        if (lastSlash != std::string::npos)
-        {
-            // 如果是在子目录里请求脚本，直接取文件名或调整相对路径
-            // 这里为了通用，确保不会把 location 前缀重复拼进去：
-            std::string fileName = pathOnly.substr(lastSlash);
-            cgiReq.scriptPath = rootDir + fileName;
-        }
-        else
-        {
-            cgiReq.scriptPath = rootDir + "/" + pathOnly;
-        }
-        
-        // if (fullUri.empty() || fullUri[0] != '/')
-        //     fullUri = "/" + fullUri;
+		std::string leftoverUri = pathOnly;
+		if (hasLocationRoot)
+		{
+			const std::string& locPath = matchedLoc->getPath();
+			if (leftoverUri.compare(0, locPath.length(), locPath) == 0)
+				leftoverUri.erase(0, locPath.length());
+		}
 
-        // cgiReq.scriptPath = rootDir + fullUri;
+		if (leftoverUri.empty() || leftoverUri[0] != '/')
+			leftoverUri = "/" + leftoverUri;
+
+		cgiReq.scriptPath = rootDir + leftoverUri;
 
         while (!cgiReq.scriptPath.empty() &&
             (cgiReq.scriptPath[cgiReq.scriptPath.length() - 1] == '\r' || 

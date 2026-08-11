@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 10:58:06 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/11 14:31:50 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "ServerConfig.hpp"
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
@@ -22,7 +23,7 @@
 
 
 RequestHandler::RequestHandler(const HttpRequest& req, HttpResponse& res, const ServerConfig& config)
-	: _request(req), _response(res), _config(config), _matchedLocation(NULL) {}
+	: _request(req), _response(res), _config(config), _matchedLocation(NULL), _pathRejected(false) {}
 
 RequestHandler::~RequestHandler() {}
 
@@ -90,6 +91,13 @@ void	RequestHandler::execute()
 
 void	RequestHandler::handleGet()
 {
+	if (_resolvedPath.empty() || _pathRejected)
+	{
+		handleError(403);
+		if (_request.getMethod() == HttpRequest::HEAD)
+			_response.discardBodyForHead();
+		return ;
+	}
 	struct stat fileStat;
 	
 	if (stat(_resolvedPath.c_str(), &fileStat) != 0)
@@ -212,23 +220,61 @@ bool	RequestHandler::isMethodAllowed() const
 	}
 	return (false);
 }
-
 std::string RequestHandler::percentDecode(const std::string& s) const
 {
-
+	std::string result;
+	result.reserve(s.length());
+	for (size_t i = 0; i < s.length(); ++i)
+	{
+		if (s[i] == '%' && i + 2 < s.length())
+		{
+			std::string hexStr = s.substr(i + 1, 2);
+			char* endPtr = NULL;
+			long val = std::strtol(hexStr.c_str(), &endPtr, 16);
+			
+			// 如果成功解析了两位十六进制数
+			if (endPtr == hexStr.c_str() + 2)
+			{
+				result.push_back(static_cast<char>(val));
+				i += 2; // 跳过已经被解析的两个字符
+			}
+			else
+			{
+				result.push_back(s[i]);
+			}
+		}
+		else
+		{
+			result.push_back(s[i]);
+		}
+	}
+	return result;
 }
 
 bool RequestHandler::isPathSafe(const std::string& uriPath) const
 {
+	std::istringstream ss(uriPath);
+	std::string segment;
 	
+	// 按照 '/' 分割路径，如果发现任何一个目录层级是 ".."，立刻判定为不安全
+	while (std::getline(ss, segment, '/'))
+	{
+		if (segment == "..")
+			return false;
+	}
+	return true;
 }
 
 void RequestHandler::resolvePhysicalPath()
 {
 	std::string rootPath;
+	bool hasLocationRoot = false;
 
 	if (_matchedLocation != NULL && !_matchedLocation->getRoot().empty())
+	{
 		rootPath = _matchedLocation->getRoot();
+		hasLocationRoot = true;
+	}
 	else
 		rootPath = _config.getRoot();
 
@@ -237,7 +283,7 @@ void RequestHandler::resolvePhysicalPath()
 
 	std::string	pathOnly = _request.getUri();
 	size_t q = pathOnly.find('?');
-	if (q ! = std::string::npos)
+	if (q != std::string::npos)
 		pathOnly.erase(q);
 
 	pathOnly = percentDecode(pathOnly);
@@ -250,18 +296,37 @@ void RequestHandler::resolvePhysicalPath()
 	}
 
 	std::string leftoverUri = pathOnly;
-	if (_matchedLocation != NULL && _matchedLocation->isAlias())
-	{
-		const std::string& locPath = _matchedLocation->getPath();
-		if (leftoverUri.compare(0, locPath.length(), locPath) == 0)
-			leftoverUri.erase(0, locPath.length());
-	}
-	if (leftoverUri.empty() || leftoverUri[0] != '/')
-		leftoverUri = "/" + leftoverUri;
+    if (_matchedLocation != NULL && hasLocationRoot)
+    {
+        const std::string& locPath = _matchedLocation->getPath();
+        if (leftoverUri.compare(0, locPath.length(), locPath) == 0)
+            leftoverUri.erase(0, locPath.length());
+    }
+    
+    if (leftoverUri.empty() || leftoverUri[0] != '/')
+        leftoverUri = "/" + leftoverUri;
 
-	_resolvedPath = rootPath + leftoverUri;
+    _resolvedPath = rootPath + leftoverUri;
+
+    char resolved[PATH_MAX];
+    char rootReal[PATH_MAX];
+    
+    if (realpath(rootPath.c_str(), rootReal) != NULL)
+    {
+        if (realpath(_resolvedPath.c_str(), resolved) != NULL)
+        {
+            std::string realPathStr(resolved);
+            std::string rootRealStr(rootReal);
+            
+            if (realPathStr.compare(0, rootRealStr.length(), rootRealStr) != 0)
+            {
+                _resolvedPath.clear();
+                _pathRejected = true;
+                return ;
+            }
+        }
+    }
 }
-
 
 std::string	RequestHandler::getMimeType(const std::string& path) const
 {
@@ -289,6 +354,12 @@ std::string	RequestHandler::getMimeType(const std::string& path) const
 
 void RequestHandler::handlePost()
 {
+	if (_resolvedPath.empty() || _pathRejected)
+	{
+		handleError(403);
+		return ;
+	}
+	
 	struct stat fileStat;
 	bool isDirectory = false;
 
@@ -363,6 +434,12 @@ void RequestHandler::handlePost()
 
 void RequestHandler::handleDelete()
 {
+	if (_resolvedPath.empty() || _pathRejected)
+	{
+		handleError(403);
+		return ;
+	}
+	
 	struct stat fileStat;
 
 	//verify existence and initial access permissions
