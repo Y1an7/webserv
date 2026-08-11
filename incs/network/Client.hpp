@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/07 18:18:21 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/11 21:19:48 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,7 @@ class Client
 		HttpRequest					_request;
 		HttpResponse				_response;
 		std::string					_responseBuffer;
+		size_t						_sendOffset;
 		State						_state;
 		
 		CgiHandler			_cgi;
@@ -57,6 +58,8 @@ class Client
 		const HttpResponse&	getResponse() const;
 
 		void				resolveActiveConfig();
+		void				setResponseBuffer(const std::string& data);
+
 		bool				readData();
 		bool				writeData();
 

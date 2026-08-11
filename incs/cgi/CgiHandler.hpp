@@ -58,6 +58,7 @@ public:
 	CgiHandler& operator=(const CgiHandler& other);
 	~CgiHandler();
 
+	void			reset();
 	bool			initCgi(const CgiRequest& req);
 
 	bool			writeToCgi();

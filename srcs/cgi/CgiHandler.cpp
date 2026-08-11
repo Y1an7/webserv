@@ -214,6 +214,41 @@ void	CgiHandler::_buildEnvp(const CgiRequest& req)
 	_envp[i] = NULL;
 }
 
+
+void CgiHandler::reset()
+{
+	killCgi();
+	if (_pipe_in[0] != -1)
+	{
+		close(_pipe_in[0]);
+		_pipe_in[0] = -1;
+	}
+	if (_pipe_in[1] != -1)
+	{
+		close(_pipe_in[1]);
+		_pipe_in[1] = -1;
+	}
+	if (_pipe_out[0] != -1)
+	{
+		close(_pipe_out[0]);
+		_pipe_out[0] = -1;
+	}
+	if (_pipe_out[1] != -1)
+	{
+		close(_pipe_out[1]);
+		_pipe_out[1] = -1;
+	}
+	_freeArray(_envp);
+	_envp = NULL;
+	_freeArray(_argv);
+	_argv = NULL;
+	_inputBuffer.clear();
+	_inputBytesSent = 0;
+	_outputBuffer.clear();
+	_scriptDir.clear();
+	_state = CGI_INIT;
+}
+
 bool CgiHandler::initCgi(const CgiRequest& req)
 {
 	CgiRequest abs = req;
@@ -323,29 +358,30 @@ bool CgiHandler::writeToCgi()
 		
 	if (_inputBytesSent >= _inputBuffer.length())
 	{
+		close(_pipe_in[1]);
+		_pipe_in[1] = -1;
 		_state = CGI_READING;
 		return true;
 	}
 
 	const char* dataPtr = _inputBuffer.c_str() + _inputBytesSent;
 	size_t bytesLeft = _inputBuffer.length() - _inputBytesSent;
+	if (bytesLeft > 65536)
+		bytesLeft = 65536;
 	ssize_t bytesWritten = write(_pipe_in[1], dataPtr, bytesLeft);
 
 	if (bytesWritten > 0)
 	{
-		_inputBytesSent += bytesWritten;
+		_inputBytesSent += static_cast<size_t>(bytesWritten);
 		if (_inputBytesSent >= _inputBuffer.length())
 		{
+			close(_pipe_in[1]);
+			_pipe_in[1] = -1;
 			_state = CGI_READING; 
 		}
 		return true;
 	}
-	else if (bytesWritten == -1)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
-		return false;
-	}
+	_state = CGI_ERROR;
 	return false;
 }
 
@@ -354,13 +390,12 @@ bool	CgiHandler::readFromCgi()
 	if (_pipe_out[0] == -1)
 		return false;
 
-	char buffer[4096];
-	int bytesRead = read(_pipe_out[0], buffer, sizeof(buffer) - 1);
+	char 	buffer[4096];
+	ssize_t bytesRead = read(_pipe_out[0], buffer, sizeof(buffer));
 
 	if (bytesRead > 0)
 	{
-		buffer[bytesRead] = '\0';
-		_outputBuffer += buffer;
+		_outputBuffer.append(buffer, static_cast<size_t>(bytesRead));
 		return true;
 	}
 

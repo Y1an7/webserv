@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 15:35:35 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/11 22:01:45 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -336,7 +336,7 @@ void	Server::removeClient(int clientFd)
 			epoll_ctl(_epollFd, EPOLL_CTL_DEL, writeFd, NULL);
 			_cgiWriteFds.erase(writeFd);
 		}
-		client->getCgiHandler().killCgi();
+		client->getCgiHandler().reset();
 
 		delete it->second;
 		_clients.erase(it);
@@ -345,10 +345,11 @@ void	Server::removeClient(int clientFd)
 
 void	Server::handleCgiWrite(int fd)
 {
-	Client* client = _cgiWriteFds[fd];
+	std::map<int, Client*>::iterator it = _cgiWriteFds.find(fd);
+	if (it == _cgiWriteFds.end() || it->second == NULL)
+		return ;
+	Client* client = it->second;
 	CgiHandler& cgi = client->getCgiHandler();
-
-	// std::cout << "handleCgiWrite triggered for FD: " << fd << std::endl;
 
 	if (cgi.writeToCgi() == false)
 	{
@@ -362,14 +363,25 @@ void	Server::handleCgiWrite(int fd)
 
 void	Server::handleCgiRead(int fd)
 {
-	Client* client = _cgiReadFds[fd];
+	std::map<int, Client*>::iterator it = _cgiReadFds.find(fd);
+	if (it == _cgiReadFds.end() || it->second == NULL)
+		return ;
+	Client* client = it->second;
 	CgiHandler& cgi = client->getCgiHandler();
 
-	if (cgi.readFromCgi() == false && cgi.getState() == CgiHandler::CGI_ERROR)
+	cgi.readFromCgi();
+
+	if (cgi.getState() == CgiHandler::CGI_ERROR)
 	{
 		cleanupCgiFds(fd, true);
 		client->setState(Client::WRITING_RESPONSE);
 		client->prepareHttpResponse();
+
+		struct epoll_event ev;
+		std::memset(&ev, 0, sizeof(ev));
+		ev.events = EPOLLOUT | EPOLLHUP;
+		ev.data.fd = client->getFd();
+		epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
 		return ;
 	}
 
@@ -390,7 +402,6 @@ void	Server::handleCgiRead(int fd)
 void	Server::cleanupCgiFds(int fd, bool isReadFd)
 {
 	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
-	close(fd);
 	if (isReadFd)
 		_cgiReadFds.erase(fd);
 	else
