@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/10 22:36:33 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/11 10:58:06 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -213,6 +213,16 @@ bool	RequestHandler::isMethodAllowed() const
 	return (false);
 }
 
+std::string RequestHandler::percentDecode(const std::string& s) const
+{
+
+}
+
+bool RequestHandler::isPathSafe(const std::string& uriPath) const
+{
+	
+}
+
 void RequestHandler::resolvePhysicalPath()
 {
 	std::string rootPath;
@@ -225,28 +235,31 @@ void RequestHandler::resolvePhysicalPath()
 	while (!rootPath.empty() && rootPath[rootPath.length() - 1] == '/')
 		rootPath.erase(rootPath.length() - 1);
 
-	std::string	leftoverUri = _request.getUri();
-	
-	if (_matchedLocation != NULL)
+	std::string	pathOnly = _request.getUri();
+	size_t q = pathOnly.find('?');
+	if (q ! = std::string::npos)
+		pathOnly.erase(q);
+
+	pathOnly = percentDecode(pathOnly);
+
+	if (!isPathSafe(pathOnly))
 	{
-		std::string	locPath = _matchedLocation->getPath();
-		if (leftoverUri.find(locPath) == 0)
+		_resolvedPath.clear();
+		_pathRejected = true;
+		return ;
+	}
+
+	std::string leftoverUri = pathOnly;
+	if (_matchedLocation != NULL && _matchedLocation->isAlias())
+	{
+		const std::string& locPath = _matchedLocation->getPath();
+		if (leftoverUri.compare(0, locPath.length(), locPath) == 0)
 			leftoverUri.erase(0, locPath.length());
 	}
-
 	if (leftoverUri.empty() || leftoverUri[0] != '/')
 		leftoverUri = "/" + leftoverUri;
-	
-	_resolvedPath = rootPath + leftoverUri;
-		
-	while (!_resolvedPath.empty() &&
-			(_resolvedPath[_resolvedPath.length() - 1] == '\r' || 
-			_resolvedPath[_resolvedPath.length() - 1] == '\n' || 
-			_resolvedPath[_resolvedPath.length() - 1] == ' '))
-	{
-		_resolvedPath.erase(_resolvedPath.length() - 1);
-	}
 
+	_resolvedPath = rootPath + leftoverUri;
 }
 
 
