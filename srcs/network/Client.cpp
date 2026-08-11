@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 22:02:08 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/12 00:23:31 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -239,11 +239,18 @@ void	Client::prepareHttpResponse()
 		}
 		else
 		{
+			const std::string& cgiOutPut = _cgi.getOutput();
 			size_t headerEnd = cgiOutPut.find("\r\n\r\n");
+			size_t splitLen = 4;
+			if (headerEnd == std::string::npos)
+			{
+				headerEnd = cgiOutPut.find("\n\n");
+				splitLen = 2;
+			}
+
 			if (headerEnd != std::string::npos)
 			{
 				std::string cgiHeaders = cgiOutPut.substr(0, headerEnd);
-				std::string cgiBody = cgiOutPut.substr(headerEnd + 4);
 				
 				int statusCode = 200;
 				std::string statusMsg = "OK";
@@ -272,17 +279,19 @@ void	Client::prepareHttpResponse()
 
 				std::stringstream ss;
 				ss << "HTTP/1.1 " << statusCode << " " << statusMsg << "\r\n"
-					<< remainingHeaders
-					<< "Content-Length: " << cgiBody.length() << "\r\n\r\n"
-					<< cgiBody;
+					<< "Content-Length: " << (cgiOutPut.length() - headerEnd - splitLen) << "\r\n\r\n";
+
 				setResponseBuffer(ss.str());
+				_responseBuffer.append(cgiOutPut.c_str() + headerEnd + splitLen, cgiOutPut.length() - headerEnd - splitLen);
 			}
 			else
 			{
-				setResponseBuffer("HTTP/1.1 200 OK\r\n\r\n" + cgiOutPut);
+				setResponseBuffer("HTTP/1.1 200 OK\r\n\r\n");
+				_responseBuffer.append(cgiOutPut);
 			}
+			_cgi.clearOutput();
+			return ;
 		}
-		return ;
 	}
     
 	RequestHandler handler(_request, _response, *_activeConfig);
@@ -391,7 +400,8 @@ bool    Client::checkAndInitCgi()
         }
 		
 		cgiReq.executorPath = matchedLoc->getCgiPath();
-        cgiReq.httpBody = _request.getBody();
+        std::string& reqBody = const_cast<std::string&>(_request.getBody());
+		cgiReq.httpBody.swap(reqBody);
         cgiReq.headerInfo = _request.getHeaders();
 
         if (_cgi.initCgi(cgiReq) == false)

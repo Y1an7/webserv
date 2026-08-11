@@ -6,13 +6,14 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 14:31:50 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/11 23:26:52 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestHandler.hpp"
 #include "ServerConfig.hpp"
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -51,6 +52,16 @@ void	RequestHandler::execute()
 	else
 	{
 		matchLocation();
+		if (_matchedLocation != NULL && _matchedLocation->hasClientMaxBodySize())
+		{
+			if (_request.getBody().length() > _matchedLocation->getClientMaxBodySize())
+			{
+				handleError(413);
+				if (_request.getMethod() == HttpRequest::HEAD)
+					_response.discardBodyForHead();
+				return ;
+			}
+		}
 		if (_matchedLocation != NULL && _matchedLocation->getRedirectCode() != 0)
 		{
 			handleRedirect();
@@ -361,7 +372,6 @@ void RequestHandler::handlePost()
 	}
 	
 	struct stat fileStat;
-	bool isDirectory = false;
 
 	if (_matchedLocation != NULL && !_matchedLocation->getUploadStore().empty())
 	{
@@ -391,15 +401,15 @@ void RequestHandler::handlePost()
 	if (stat(_resolvedPath.c_str(), &fileStat) == 0)
 	{
 		if (S_ISDIR(fileStat.st_mode))
-			isDirectory = true;
+		{
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			std::stringstream ss;
+			ss << tv.tv_sec << "_" << tv.tv_usec;
+			std::string uniqueName = "/upload_" + ss.str();
+			_resolvedPath += uniqueName;
+		}
 	}
-
-	if (isDirectory)
-	{
-		handleError(403);
-		return ;
-	}
-
 	int fd = open(_resolvedPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
 	if (fd == -1)
 	{
