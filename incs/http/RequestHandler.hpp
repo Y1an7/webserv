@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.hpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:01 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/10 21:31:54 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/11 14:20:08 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ class RequestHandler
 		const ServerConfig&	_config;
 		const Location*		_matchedLocation;
 		std::string			_resolvedPath;
+		bool				_pathRejected;
 	
 		void		handleGet();
 		void		handlePost();
@@ -40,6 +41,8 @@ class RequestHandler
 	
 		void		matchLocation();
 		bool		isMethodAllowed() const;
+		std::string percentDecode(const std::string& s) const;
+		bool		isPathSafe(const std::string& uriPath) const;
 		void		resolvePhysicalPath();
 
 		bool		isDirectory(const std::string& path) const;
