@@ -58,16 +58,17 @@ public:
 	CgiHandler& operator=(const CgiHandler& other);
 	~CgiHandler();
 
-	void			reset();
-	bool			initCgi(const CgiRequest& req);
+	void					reset();
+	bool					initCgi(const CgiRequest& req);
 
-	bool			writeToCgi();
-	bool			readFromCgi();
+	bool					writeToCgi();
+	bool					readFromCgi();
 
-	int				getWriteFd() const;
-	int				getReadFd() const;
-	CgiState		getState() const;
-	std::string		getOutput() const;
+	int						getWriteFd() const;
+	int						getReadFd() const;
+	CgiState				getState() const;
+	const std::string&		getOutput() const;
+	void					clearOutput();
 
 	bool			checkTimeout(long timeoutSeconds);
 	void			killCgi();

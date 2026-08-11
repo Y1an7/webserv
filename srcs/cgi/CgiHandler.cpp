@@ -279,7 +279,7 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	_buildEnvp(abs);
 	_buildArgv(abs);
 
-	_inputBuffer = req.httpBody;
+	_inputBuffer.swap(const_cast<std::string&>(req.httpBody));
 	_outputBuffer = "";
 
 	if (pipe(_pipe_in) == -1)
@@ -463,5 +463,7 @@ int CgiHandler::getReadFd() const { return _pipe_out[0];}
 
 CgiHandler::CgiState CgiHandler::getState() const { return _state; }
 
-std::string CgiHandler::getOutput() const { return _outputBuffer; }
+const std::string& CgiHandler::getOutput() const { return _outputBuffer; }
+
+void CgiHandler::clearOutput() { _outputBuffer.clear(); }
 
