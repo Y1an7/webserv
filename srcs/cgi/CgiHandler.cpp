@@ -381,8 +381,7 @@ bool CgiHandler::writeToCgi()
 		}
 		return true;
 	}
-	_state = CGI_ERROR;
-	return false;
+	return true;
 }
 
 bool	CgiHandler::readFromCgi()

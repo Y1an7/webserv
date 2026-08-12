@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/12 10:14:58 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/12 16:01:28 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,6 +130,8 @@ void	RequestHandler::handleGet()
 
 	if (S_ISDIR(fileStat.st_mode))
 	{
+		
+
 		std::string uri = _request.getUri();
 		
 		if (!_resolvedPath.empty() && _resolvedPath[_resolvedPath.length() - 1] != '/')

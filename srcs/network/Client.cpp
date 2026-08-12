@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/12 09:52:21 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/12 16:37:49 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -236,6 +236,7 @@ void	Client::prepareHttpResponse()
 				<< "Content-Length: " << body.length() << "\r\n\r\n"
 				<< body;
 			setResponseBuffer(ss.str());
+			return ;
 		}
 		else
 		{
