@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/12 19:21:20 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/12 23:12:04 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,7 +138,7 @@ void	Server::run()
 		for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			Client* client = it->second;
-			if (client->getCgiHandler().checkTimeout(20))
+			if (client->getCgiHandler().checkTimeout(30))
 			{
 				int readFd  = client->getCgiHandler().getReadFd();
 				int writeFd = client->getCgiHandler().getWriteFd();
