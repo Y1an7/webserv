@@ -381,17 +381,7 @@ bool CgiHandler::writeToCgi()
 		}
 		return true;
 	}
-	else if (bytesWritten == 0)
-		return (true);
-	else
-	{
-		close(_pipe_in[1]);
-		_pipe_in[1] = -1;
-		_state = CGI_READING;
-		return (true);
-	}
-	// _state = CGI_ERROR;
-	// return false;
+	return true;
 }
 
 bool	CgiHandler::readFromCgi()
