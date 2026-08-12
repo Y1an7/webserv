@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/12 00:23:31 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/12 09:52:21 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -279,6 +279,7 @@ void	Client::prepareHttpResponse()
 
 				std::stringstream ss;
 				ss << "HTTP/1.1 " << statusCode << " " << statusMsg << "\r\n"
+					<< remainingHeaders
 					<< "Content-Length: " << (cgiOutPut.length() - headerEnd - splitLen) << "\r\n\r\n";
 
 				setResponseBuffer(ss.str());
