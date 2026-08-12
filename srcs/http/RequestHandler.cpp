@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 23:26:52 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/12 10:14:58 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,6 +69,14 @@ void	RequestHandler::execute()
 		}
 		if (!isMethodAllowed())
 		{
+			std::string allow;
+			if (_matchedLocation != NULL)
+			{
+				const std::vector<std::string>& m =_matchedLocation->getMethods();
+				for (size_t i = 0; i < m.size(); ++i)
+					allow += (i ? ", " : "") + m[i];
+			}
+			_response.setHeader("Allow", allow.empty() ? "GET, HEAD" : allow);
 			handleError(405);
 			return ;
 		}
