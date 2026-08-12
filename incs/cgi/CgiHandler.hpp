@@ -45,6 +45,7 @@ private:
 	size_t			_inputBytesSent;
 
 	struct timeval	_startTime;
+	struct timeval	_lastProgress;
 	std::string		_scriptDir; //cgi is chdir()ed here before execve
 
 	void			_buildEnvp(const CgiRequest& req);

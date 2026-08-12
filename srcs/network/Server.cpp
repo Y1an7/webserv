@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 22:01:45 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/12 19:21:20 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -164,6 +164,18 @@ void	Server::run()
 
 			if (client->hasTimedOut(10))
 			{
+				int	toReadFd = client->getCgiHandler().getReadFd();
+				int	toWriteFd = client->getCgiHandler().getWriteFd();
+				if (toReadFd != -1)
+				{
+					epoll_ctl(_epollFd, EPOLL_CTL_DEL, toReadFd, NULL);
+					_cgiReadFds.erase(toReadFd);
+				}
+				if (toWriteFd != -1)
+				{
+					epoll_ctl(_epollFd, EPOLL_CTL_DEL, toWriteFd, NULL);
+					_cgiWriteFds.erase(toWriteFd);
+				}
 				client->handleTimeout();
 				if (client->getState() == Client::CLOSE_CONNECTION)
 					staleClient.push_back(client->getFd());
@@ -338,6 +350,32 @@ void	Server::removeClient(int clientFd)
 		}
 		client->getCgiHandler().reset();
 
+		for (std::map<int, Client*>::iterator rit = _cgiReadFds.begin(); rit != _cgiReadFds.end();)
+		{
+			if (rit->second == client)
+			{
+				epoll_ctl(_epollFd, EPOLL_CTL_DEL, rit->first, NULL);
+				std::map<int, Client*>::iterator dead = rit;
+				++rit;
+				_cgiReadFds.erase(dead);
+			}
+			else
+				++rit;
+		}
+
+		for (std::map<int, Client*>::iterator wit = _cgiWriteFds.begin(); wit != _cgiWriteFds.end();)
+		{
+			if (wit->second == client)
+			{
+				epoll_ctl(_epollFd, EPOLL_CTL_DEL, wit->first, NULL);
+				std::map<int, Client*>::iterator dead = wit;
+				++wit;
+				_cgiWriteFds.erase(dead);
+			}
+			else
+				++wit;
+		}
+
 		delete it->second;
 		_clients.erase(it);
 	}
@@ -350,6 +388,7 @@ void	Server::handleCgiWrite(int fd)
 		return ;
 	Client* client = it->second;
 	CgiHandler& cgi = client->getCgiHandler();
+	client->updateLastActivity();
 
 	if (cgi.writeToCgi() == false)
 	{
@@ -368,12 +407,19 @@ void	Server::handleCgiRead(int fd)
 		return ;
 	Client* client = it->second;
 	CgiHandler& cgi = client->getCgiHandler();
+	client->updateLastActivity();
 
 	cgi.readFromCgi();
 
 	if (cgi.getState() == CgiHandler::CGI_ERROR)
 	{
 		cleanupCgiFds(fd, true);
+		//the CGI can finish before we managed to write the whole body.
+		//The write fd would then stay in _cgiWriteFds with a Client* that is
+		//about to be deleted -> dangling entry + swallowed events after the
+		//kernel reuses that fd number.
+		if (cgi.getWriteFd() != -1)
+			cleanupCgiFds(cgi.getWriteFd(), false);
 		client->setState(Client::WRITING_RESPONSE);
 		client->prepareHttpResponse();
 
@@ -388,6 +434,8 @@ void	Server::handleCgiRead(int fd)
 	if (cgi.getState() == CgiHandler::CGI_DONE)
 	{
 		cleanupCgiFds(fd, true);
+		if (cgi.getWriteFd() != -1)
+			cleanupCgiFds(cgi.getWriteFd(), false);
 		client->setState(Client::WRITING_RESPONSE);
 		client->prepareHttpResponse();
 

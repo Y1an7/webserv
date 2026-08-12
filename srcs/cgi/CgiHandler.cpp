@@ -301,6 +301,7 @@ bool CgiHandler::initCgi(const CgiRequest& req)
 	_setNonBlocking(_pipe_out[0]);
 	
 	gettimeofday(&_startTime, NULL);
+	_lastProgress = _startTime;
 
 	_pid = fork();
 	if (_pid == -1)
@@ -372,6 +373,7 @@ bool CgiHandler::writeToCgi()
 
 	if (bytesWritten > 0)
 	{
+		gettimeofday(&_lastProgress, NULL);
 		_inputBytesSent += static_cast<size_t>(bytesWritten);
 		if (_inputBytesSent >= _inputBuffer.length())
 		{
@@ -394,6 +396,7 @@ bool	CgiHandler::readFromCgi()
 
 	if (bytesRead > 0)
 	{
+		gettimeofday(&_lastProgress, NULL);
 		_outputBuffer.append(buffer, static_cast<size_t>(bytesRead));
 		return true;
 	}
@@ -404,15 +407,13 @@ bool	CgiHandler::readFromCgi()
 		_pipe_out[0] = -1;
 
 		int status;
-		waitpid(_pid, &status, WNOHANG);
-		_pid = -1;
+		if (waitpid(_pid, &status, WNOHANG) > 0)
+			_pid = -1;
 
 		_state = CGI_DONE;
 		return true;
 	}
-
-	_state = CGI_ERROR;
-	return false;
+	return true;
 }
 
 bool	CgiHandler::checkTimeout(long timeoutSeconds)
@@ -421,7 +422,7 @@ bool	CgiHandler::checkTimeout(long timeoutSeconds)
 	{
 		struct timeval currenTime;
 		gettimeofday(&currenTime, NULL);
-		long elapsed = currenTime.tv_sec - _startTime.tv_sec;
+		long elapsed = currenTime.tv_sec - _lastProgress.tv_sec;
 
 		if (elapsed >= timeoutSeconds)
 		{
