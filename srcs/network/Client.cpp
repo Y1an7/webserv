@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
 /*   Updated: 2026/08/12 16:37:49 by rozhang          ###   ########.fr       */
@@ -291,9 +291,9 @@ void	Client::prepareHttpResponse()
 				setResponseBuffer("HTTP/1.1 200 OK\r\n\r\n");
 				_responseBuffer.append(cgiOutPut);
 			}
-			_cgi.clearOutput();
-			return ;
 		}
+		_cgi.clearOutput();
+		return ;
 	}
     
 	RequestHandler handler(_request, _response, *_activeConfig);
