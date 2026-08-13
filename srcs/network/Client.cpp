@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/12 16:37:49 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/13 18:52:07 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -311,7 +311,6 @@ CgiHandler& Client::getCgiHandler()
 {
 	return (_cgi);
 }
-
 
 bool    Client::checkAndInitCgi()
 {
