@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/13 00:52:52 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/13 13:38:38 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -407,11 +407,8 @@ void RequestHandler::handlePost()
 		}
 		_resolvedPath = store + "/" + base;
 	}
-	else
-	{
-		handleError(409);
-		return ;
-	}
+	
+	std::string createdUri = _request.getUri();
 	if (stat(_resolvedPath.c_str(), &fileStat) == 0)
 	{
 		if (S_ISDIR(fileStat.st_mode))
@@ -422,8 +419,12 @@ void RequestHandler::handlePost()
 			ss << tv.tv_sec << "_" << tv.tv_usec;
 			std::string uniqueName = "/upload_" + ss.str();
 			_resolvedPath += uniqueName;
+			if (createdUri.length() > 0 && createdUri[createdUri.length() - 1] != '/')
+				createdUri += "/";
+			createdUri += "upload_" + ss.str();
 		}
-		else
+		else if (S_ISREG(fileStat.st_mode) &&
+					(_matchedLocation == NULL || _matchedLocation->getUploadStore().empty()))
 		{
 			handleError(409);
 			return ;
@@ -449,7 +450,7 @@ void RequestHandler::handlePost()
 
 	_response.setStatusCode(201);
 	_response.setHeader("Content-Type", "text/html");
-	_response.setHeader("Location", _request.getUri());
+	_response.setHeader("Location", createdUri);
 	_response.setBody(
 			"<html>\r\n"
 			"<head><title>201 Created</title></head>\r\n"
