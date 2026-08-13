@@ -177,7 +177,8 @@ void	ConfigParser::parseListen(ServerConfig& server)
 
 	if (portNumber <= 0 || portNumber > 65535) //this number is 2^16 -1
 		throw ConfigParser::SyntaxException();
-	server.setPort(portNumber);
+	if (!server.setPort(portNumber))
+		throw ConfigParser::SyntaxException();
 	this->_pos++;
 	if (this->_pos >= this->_tokens.size() || this->_tokens[this->_pos] != ";")
 		throw ConfigParser::SyntaxException();

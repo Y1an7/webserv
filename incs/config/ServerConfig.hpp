@@ -12,6 +12,7 @@ class ServerConfig
 private:
 	int							_port; //tell sockets port to listen
 	std::string					_host; //tell socket ip address
+	std::vector<int>			_ports;  //record current ports
 	std::string					_root;
 	std::vector<std::string>	_index;
 
@@ -27,7 +28,7 @@ public:
 	~ServerConfig();
 
 	//setters
-	void	setPort(int port);
+	bool	setPort(int port);
 	void	setHost(const std::string& host);
 	void	setRoot(const std::string& root);
 	void	addServerNames(const std::string& serverNames);

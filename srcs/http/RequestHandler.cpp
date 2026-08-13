@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/12 16:01:28 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/13 00:52:52 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -253,11 +253,10 @@ std::string RequestHandler::percentDecode(const std::string& s) const
 			char* endPtr = NULL;
 			long val = std::strtol(hexStr.c_str(), &endPtr, 16);
 			
-			// 如果成功解析了两位十六进制数
 			if (endPtr == hexStr.c_str() + 2)
 			{
 				result.push_back(static_cast<char>(val));
-				i += 2; // 跳过已经被解析的两个字符
+				i += 2;
 			}
 			else
 			{
@@ -408,6 +407,11 @@ void RequestHandler::handlePost()
 		}
 		_resolvedPath = store + "/" + base;
 	}
+	else
+	{
+		handleError(409);
+		return ;
+	}
 	if (stat(_resolvedPath.c_str(), &fileStat) == 0)
 	{
 		if (S_ISDIR(fileStat.st_mode))
@@ -418,6 +422,11 @@ void RequestHandler::handlePost()
 			ss << tv.tv_sec << "_" << tv.tv_usec;
 			std::string uniqueName = "/upload_" + ss.str();
 			_resolvedPath += uniqueName;
+		}
+		else
+		{
+			handleError(409);
+			return ;
 		}
 	}
 	int fd = open(_resolvedPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
