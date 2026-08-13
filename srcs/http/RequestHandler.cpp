@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/13 13:38:38 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/13 16:00:29 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -430,6 +430,11 @@ void RequestHandler::handlePost()
 			return ;
 		}
 	}
+	bool fileAlreadyExists = false;
+	struct stat checkStat;
+	if (stat(_resolvedPath.c_str(), &checkStat) == 0 && S_ISREG(checkStat.st_mode))
+		fileAlreadyExists = true;
+	
 	int fd = open(_resolvedPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
 	if (fd == -1)
 	{
@@ -447,19 +452,35 @@ void RequestHandler::handlePost()
 		handleError(500);
 		return ;
 	}
-
-	_response.setStatusCode(201);
-	_response.setHeader("Content-Type", "text/html");
-	_response.setHeader("Location", createdUri);
-	_response.setBody(
+	if (fileAlreadyExists)
+	{
+		_response.setStatusCode(200);
+		_response.setHeader("Content-Type", "text/html");
+		_response.setBody(
 			"<html>\r\n"
-			"<head><title>201 Created</title></head>\r\n"
+			"<head><title>200 OK</title></head>\r\n"
 			"<body>\r\n"
-			"<h1>201 Created</h1>\r\n"
-			"<p>The file was successfully created/uploaded.</p>\r\n"
+			"<h1>200 OK</h1>\r\n"
+			"<p>The file was successfully updated.</p>\r\n"
 			"</body>\r\n"
 			"</html>\r\n"
-	);
+		);
+	}
+	else
+	{
+		_response.setStatusCode(201);
+		_response.setHeader("Content-Type", "text/html");
+		_response.setHeader("Location", createdUri);
+		_response.setBody(
+				"<html>\r\n"
+				"<head><title>201 Created</title></head>\r\n"
+				"<body>\r\n"
+				"<h1>201 Created</h1>\r\n"
+				"<p>The file was successfully created/uploaded.</p>\r\n"
+				"</body>\r\n"
+				"</html>\r\n"
+		);
+	}
 }
 
 void RequestHandler::handleDelete()

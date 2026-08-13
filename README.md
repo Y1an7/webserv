@@ -14,6 +14,61 @@
 ```
 4. Testing: Once running, you can test the web server using a web browser or curl commands on specified method.
 
+- Basic Methods
+```bash
+	./webserv webserv.conf
+
+	#GET Request (Static Files): default index page
+	curl -i http://127.0.0.1:8080/
+	#POST Request
+	curl -i -X POST -d "Hello Webserv" http://127.0.0.1:8080/uploads/test.txt
+	#DELETE Request
+	curl -i -X DELETE http://127.0.0.1:8080/uploads/test.txt
+```
+- CGI Tests
+```bash
+
+	#Python CGI
+	curl -i http://127.0.0.1:8080/cgi-bin/tester.py
+	curl -i -X POST -d "message=hello" http://127.0.0.1:8080/cgi-bin/tester.py
+	#Bash CGI(.sh)
+	curl -i http://127.0.0.1:8080/cgi-sh/test.sh
+	#PHP CGI (.php)
+	curl -i http://127.0.0.1:8080/cgi-php/test.php
+```
+- Autoindex & Redirection
+```bash
+	#Autoindex
+	curl -i http://127.0.0.1:8080/images/
+	#HTTP Redirection (301 Moved Permanently)
+	curl -i http://127.0.0.1:8080/old-page
+```
+- Virtual Hosts & Multiple Ports
+```bash
+	#Server Names (Virtual Hosting)
+	curl -i -H "Host: example.com" http://127.0.0.1:8080/
+	#Different Listening Ports
+	curl -i http://127.0.0.1:8081/
+```
+- Error Handling
+```bash
+	#404not found
+	curl -i http://127.0.0.1:8080/invalid_path
+	curl -i http://127.0.0.1:8081/this_file_does_not_exist.html
+	#405Method Not Allowed
+	curl -i -X POST http://127.0.0.1:8080/images/
+	#409Conflict
+	curl -X POST --data "HACKED" http://127.0.0.1:8080/index.html
+```
+- Quick Browser Testing URLs
+	- Default Home: http://127.0.0.1:8080/
+	- Virtual Host (requires editing /etc/hosts to map example.- com to 127.0.0.1): http://example.com:8080/
+	- Port 8081 Autoindex: http://127.0.0.1:8081/
+	- Images Autoindex: http://127.0.0.1:8080/images/
+	- 301 Redirect: http://127.0.0.1:8080/old-page
+	- Python CGI: http://127.0.0.1:8080/cgi-bin/debug.py
+					
+	- Custom 404 Error: http://127.0.0.1:8080/- this-page-does-not-exist
 # key concept
 ## OS & Kernel Layer (The Engine)
 - Event-Driven I/O Multiplexing: The core engine leverages Linux's epoll system call. This allows a single thread to concurrently manage thousands of client connections and CGI pipes without hanging or stalling.
@@ -29,5 +84,9 @@
 - CGI (Dynamic Content): Acts as a bridge between the HTTP server and external executable scripts (like Python or PHP). This layer pipes HTTP payloads into standard input and extracts headers/bodies from standard output, enabling complex features like Cookies, Session Management, and user authentication.
 
 # Resources
-- RFC 7231(HTTP/1.1): The official specification for HTTP request and response massage format.
-
+- [RFC 7231(HTTP/1.1)](https://datatracker.ietf.org/doc/html/rfc7231): The official specification for HTTP request and response massage format.
+- [RFC 7230](https://datatracker.ietf.org/doc/html/rfc7230)
+- [Socket Programming in C](https://www.geeksforgeeks.org/c/socket-programming-cc/): A way of connecting two nodes on a network to communicate with each other.
+- [epoll(7) - Linux manual page](https://man7.org/linux/man-pages/man7/epoll.7.html): Monitoring multiple file descriptors to see if I/O is possible on any of them. 
+-[HTTP Crash Course & Exploration](https://www.youtube.com/watch?v=iYM2zFP3Zn0): HTTPrequest/response cycle, status codes, header/body etc.
+- [CGI (Common Gateway Interface)](https://en.wikipedia.org/wiki/Common_Gateway_Interface): A standard protocol that lets web servers run external programs to create dynamic web pages.
