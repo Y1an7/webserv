@@ -69,19 +69,12 @@
 	- Python CGI: http://127.0.0.1:8080/cgi-bin/debug.py					
 	- Custom 404 Error: http://127.0.0.1:8080/-this-page-does-not-exist
 
-- Siege stress test
+- Siege Stress Test
 ```bash
 	#Download
-	wget http://download.joedog.org/siege/siege-4.0.7.tar.gz
-	tar -zxvf siege-4.0.7.tar.gz
-	cd siege-4.0.7
-	#fix compile error if any occured
-	sed -i 's/int strcasecmp();/\/\/ int strcasecmp();/g' src/setup.h
-	./configure CFLAGS="-std=gnu99"
+	./Siege_install.sh
+	source ~/.zshrc
 
-	make
-	~/siege-4.0.7/src/siege.config
-	
 	#Tests
 	#Tests 100 concurrent users making 50 requests each on a simple static page to evaluate max throughput and file descriptor limits.
 	siege -c 100 -r 50 -b http://127.0.0.1:8080/index.html
@@ -89,8 +82,8 @@
 	#Tests 20 users downloading a JPEG image to check network I/O and socket buffering within the /images location.
 	siege -c 20 -r 10 -b http://127.0.0.1:8080/images/testimage.jpg
 
-	#Tests 15 users executing a Python CGI script to verify that your server correctly forks and manages external processes under stress.
-	siege -c 15 -r 10 -b http://127.0.0.1:8080/cgi-bin/tester.py
+	# #Tests 15 users executing a Python CGI script to verify that your server correctly forks and manages external processes under stress.
+	# siege -c 15 -r 10 -b http://127.0.0.1:8080/cgi-bin/tester.py
 
 	#Tests 50 concurrent users accessing the secondary server block listening on port 8081 to confirm that multi-port multiplexing works perfectly.
 	siege -c 50 -t 30s -b http://127.0.0.1:8081/
