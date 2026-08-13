@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestHandler.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
+/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/13 16:00:29 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/13 17:30:31 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,7 +130,18 @@ void	RequestHandler::handleGet()
 
 	if (S_ISDIR(fileStat.st_mode))
 	{
-		
+		std::string dirUri = _request.getUri();
+		size_t dq = dirUri.find('?');
+		if (dq != std::string::npos)
+			dirUri.erase(dq);
+		if (dirUri.empty() || dirUri[dirUri.length() - 1] != '/')
+		{
+			_response.setStatusCode(301);
+			_response.setHeader("Location", dirUri + "/");
+			_response.setHeader("Content-Type", "text/html");
+			_response.setBody("<html><body>301 Moved Permanently</body></html>");
+			return ;
+		}
 
 		std::string uri = _request.getUri();
 		
@@ -409,6 +420,9 @@ void RequestHandler::handlePost()
 	}
 	
 	std::string createdUri = _request.getUri();
+	size_t cq = createdUri.find('?');
+	if (cq != std::string::npos)
+		createdUri.erase(cq);
 	if (stat(_resolvedPath.c_str(), &fileStat) == 0)
 	{
 		if (S_ISDIR(fileStat.st_mode))
