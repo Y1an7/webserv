@@ -6,7 +6,7 @@
 /*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:24 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 21:19:48 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/13 18:49:17 by rozhang          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,7 @@ class Client
 				
 		Client(const Client& other);
 		Client&	operator=(const Client& other);
+	
 	public:
 		Client(int fd, const std::vector<ServerConfig>& configs);
 		~Client();
