@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:36:23 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/11 21:46:24 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/13 01:16:24 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,7 @@ class HttpResponse
 		
 		void				reset();
 		void				generateDefaultErrorPage();
-		void	discardBodyForHead();
+		void				discardBodyForHead();
 
 		int					getStatusCode() const;
 		std::string			getHeader(const std::string& key) const;

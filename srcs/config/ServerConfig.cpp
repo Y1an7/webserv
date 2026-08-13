@@ -3,6 +3,7 @@
 ServerConfig::ServerConfig()
 {
 	this->_port = 0;
+	this->_ports.push_back(this->_port);
 	this->_host = "127.0.0.1";
 	this->_root = ".";
 	this->_clientMaxBodySize = 1048576;
@@ -18,6 +19,7 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& other)
 	if (this != &other)
 	{
 		this->_port = other._port;
+		this->_ports = other._ports;
 		this->_host = other._host;
 		this->_root = other._root;
 		this->_serverNames = other._serverNames;
@@ -31,9 +33,16 @@ ServerConfig& ServerConfig::operator=(const ServerConfig& other)
 
 ServerConfig::~ServerConfig() {}
 
-void	ServerConfig::setPort(int port)
+bool	ServerConfig::setPort(int port)
 {
+	for (size_t i = 0; i < this->_ports.size(); ++i)
+	{
+		if (this->_ports[i] == port)
+			return false;
+	}
+	this->_ports.push_back(port);
 	this->_port = port;
+	return true;
 }
 
 void	ServerConfig::setHost(const std::string& host)
