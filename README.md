@@ -66,9 +66,35 @@
 	- Port 8081 Autoindex: http://127.0.0.1:8081/
 	- Images Autoindex: http://127.0.0.1:8080/images/
 	- 301 Redirect: http://127.0.0.1:8080/old-page
-	- Python CGI: http://127.0.0.1:8080/cgi-bin/debug.py
-					
-	- Custom 404 Error: http://127.0.0.1:8080/- this-page-does-not-exist
+	- Python CGI: http://127.0.0.1:8080/cgi-bin/debug.py					
+	- Custom 404 Error: http://127.0.0.1:8080/-this-page-does-not-exist
+
+- Siege stress test
+```bash
+	#Download
+	wget http://download.joedog.org/siege/siege-4.0.7.tar.gz
+	tar -zxvf siege-4.0.7.tar.gz
+	cd siege-4.0.7
+	#fix compile error if any occured
+	sed -i 's/int strcasecmp();/\/\/ int strcasecmp();/g' src/setup.h
+	./configure CFLAGS="-std=gnu99"
+
+	make
+	~/siege-4.0.7/src/siege.config
+	
+	#Tests
+	#Tests 100 concurrent users making 50 requests each on a simple static page to evaluate max throughput and file descriptor limits.
+	siege -c 100 -r 50 -b http://127.0.0.1:8080/index.html
+
+	#Tests 20 users downloading a JPEG image to check network I/O and socket buffering within the /images location.
+	siege -c 20 -r 10 -b http://127.0.0.1:8080/images/testimage.jpg
+
+	#Tests 15 users executing a Python CGI script to verify that your server correctly forks and manages external processes under stress.
+	siege -c 15 -r 10 -b http://127.0.0.1:8080/cgi-bin/tester.py
+
+	#Tests 50 concurrent users accessing the secondary server block listening on port 8081 to confirm that multi-port multiplexing works perfectly.
+	siege -c 50 -t 30s -b http://127.0.0.1:8081/
+```
 # key concept
 ## OS & Kernel Layer (The Engine)
 - Event-Driven I/O Multiplexing: The core engine leverages Linux's epoll system call. This allows a single thread to concurrently manage thousands of client connections and CGI pipes without hanging or stalling.
@@ -88,5 +114,5 @@
 - [RFC 7230](https://datatracker.ietf.org/doc/html/rfc7230)
 - [Socket Programming in C](https://www.geeksforgeeks.org/c/socket-programming-cc/): A way of connecting two nodes on a network to communicate with each other.
 - [epoll(7) - Linux manual page](https://man7.org/linux/man-pages/man7/epoll.7.html): Monitoring multiple file descriptors to see if I/O is possible on any of them. 
--[HTTP Crash Course & Exploration](https://www.youtube.com/watch?v=iYM2zFP3Zn0): HTTPrequest/response cycle, status codes, header/body etc.
+- [HTTP Crash Course & Exploration](https://www.youtube.com/watch?v=iYM2zFP3Zn0): HTTPrequest/response cycle, status codes, header/body etc.
 - [CGI (Common Gateway Interface)](https://en.wikipedia.org/wiki/Common_Gateway_Interface): A standard protocol that lets web servers run external programs to create dynamic web pages.
