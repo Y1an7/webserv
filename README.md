@@ -82,8 +82,8 @@
 	#Tests 20 users downloading a JPEG image to check network I/O and socket buffering within the /images location.
 	siege -c 20 -r 10 -b http://127.0.0.1:8080/images/testimage.jpg
 
-	# #Tests 15 users executing a Python CGI script to verify that your server correctly forks and manages external processes under stress.
-	# siege -c 15 -r 10 -b http://127.0.0.1:8080/cgi-bin/tester.py
+	#Tests 15 users executing a Python CGI script to verify that your server correctly forks and manages external processes under stress.
+	siege -c 15 -r 10 -b http://127.0.0.1:8080/cgi-bin/tester.py
 
 	#Tests 50 concurrent users accessing the secondary server block listening on port 8081 to confirm that multi-port multiplexing works perfectly.
 	siege -c 50 -t 30s -b http://127.0.0.1:8081/
@@ -104,7 +104,8 @@
 
 # Resources
 - [RFC 7231(HTTP/1.1)](https://datatracker.ietf.org/doc/html/rfc7231): The official specification for HTTP request and response massage format.
-- [RFC 7230](https://datatracker.ietf.org/doc/html/rfc7230)
+- [RFC 7230](https://datatracker.ietf.org/doc/html/rfc7230): The rules on URI design.
+- [RFC 3875](https://datatracker.ietf.org/doc/html/rfc3875): The Common Gateway Interface (CGI) Version 1.1.
 - [Socket Programming in C](https://www.geeksforgeeks.org/c/socket-programming-cc/): A way of connecting two nodes on a network to communicate with each other.
 - [epoll(7) - Linux manual page](https://man7.org/linux/man-pages/man7/epoll.7.html): Monitoring multiple file descriptors to see if I/O is possible on any of them. 
 - [HTTP Crash Course & Exploration](https://www.youtube.com/watch?v=iYM2zFP3Zn0): HTTPrequest/response cycle, status codes, header/body etc.

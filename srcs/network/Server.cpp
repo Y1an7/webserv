@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/12 23:12:04 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/19 23:14:58 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -451,7 +451,16 @@ void	Server::cleanupCgiFds(int fd, bool isReadFd)
 {
 	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
 	if (isReadFd)
+	{
 		_cgiReadFds.erase(fd);
+		if (_clients.find(fd) != _clients.end())
+			_clients[fd]->getCgiHandler().closeReadFd();
+	}
 	else
+	{
 		_cgiWriteFds.erase(fd);
+		if (_clients.find(fd) != _clients.end())
+			_clients[fd]->getCgiHandler().closeWriteFd();
+			
+	}
 }
