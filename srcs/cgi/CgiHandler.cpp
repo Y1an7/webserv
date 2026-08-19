@@ -359,8 +359,6 @@ bool CgiHandler::writeToCgi()
 		
 	if (_inputBytesSent >= _inputBuffer.length())
 	{
-		close(_pipe_in[1]);
-		_pipe_in[1] = -1;
 		_state = CGI_READING;
 		return true;
 	}
@@ -403,9 +401,6 @@ bool	CgiHandler::readFromCgi()
 
 	else if (bytesRead == 0)
 	{
-		close(_pipe_out[0]);
-		_pipe_out[0] = -1;
-
 		int status;
 		if (waitpid(_pid, &status, WNOHANG) > 0)
 			_pid = -1;
@@ -433,6 +428,23 @@ bool	CgiHandler::checkTimeout(long timeoutSeconds)
 	return false;
 }
 
+void	CgiHandler::closeReadFd()
+{
+	if (_pipe_out[0] != -1)
+	{
+		close(_pipe_out[0]);
+		_pipe_out[0] = -1;
+	}
+}
+
+void	CgiHandler::closeWriteFd()
+{
+	if (_pipe_in[1] != -1)
+	{
+		close(_pipe_in[1]);
+		_pipe_in[1] = -1;
+	}
+}
 
 void	CgiHandler::killCgi()
 {
@@ -454,7 +466,6 @@ void	CgiHandler::killCgi()
 	}
 }
 
-
 //getters
 
 int	CgiHandler::getWriteFd() const { return _pipe_in[1];}
@@ -466,4 +477,3 @@ CgiHandler::CgiState CgiHandler::getState() const { return _state; }
 const std::string& CgiHandler::getOutput() const { return _outputBuffer; }
 
 void CgiHandler::clearOutput() { _outputBuffer.clear(); }
-

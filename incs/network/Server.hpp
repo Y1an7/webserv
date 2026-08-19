@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:56 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/22 22:04:32 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/19 17:04:24 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,8 +31,8 @@ class Server
 		static const int			MAX_EVENTS = 1024;
 		struct epoll_event			_events[MAX_EVENTS];
 
-		std::map<int, Client*> _cgiReadFds;
-		std::map<int, Client*> _cgiWriteFds;
+		std::map<int, Client*>		_cgiReadFds;
+		std::map<int, Client*> 		_cgiWriteFds;
 
 		void	registerCgiFds(Client* client);
 		void	handleCgiRead(int fd);

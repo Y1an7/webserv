@@ -70,9 +70,11 @@ public:
 	CgiState				getState() const;
 	const std::string&		getOutput() const;
 	void					clearOutput();
+	void					closeReadFd();
+	void					closeWriteFd();
 
-	bool			checkTimeout(long timeoutSeconds);
-	void			killCgi();
+	bool					checkTimeout(long timeoutSeconds);
+	void					killCgi();
 
 };
 
