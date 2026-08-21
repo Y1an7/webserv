@@ -82,11 +82,14 @@
 	#Tests 20 users downloading a JPEG image to check network I/O and socket buffering within the /images location.
 	siege -c 20 -r 10 -b http://127.0.0.1:8080/images/testimage.jpg
 
-	#Tests 15 users executing a Python CGI script to verify that your server correctly forks and manages external processes under stress.
+	#Tests 15 users executing a Python CGI script.
 	siege -c 15 -r 10 -b http://127.0.0.1:8080/cgi-bin/tester.py
 
-	#Tests 50 concurrent users accessing the secondary server block listening on port 8081 to confirm that multi-port multiplexing works perfectly.
+	#Tests 50 concurrent users accessing the secondary server block listening on port 8081.
 	siege -c 50 -t 30s -b http://127.0.0.1:8081/
+
+	#Tests 20 concurrent users sending a total of 1200 POST requests to a CGI script on port 8080.
+	siege -b -c 20 -r 60 "http://127.0.0.1:8080/cgi-bin/debug.py POST dummy_data=1"
 ```
 # key concept
 ## OS & Kernel Layer (The Engine)
