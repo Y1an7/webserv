@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/19 23:14:58 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/21 11:04:10 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,7 +84,6 @@ void	Server::run()
 			int 		triggeredFd = _events[i].data.fd;
 			uint32_t	events = _events[i].events;
 
-			
 			//case 1: CGI fd handling
 			if (_cgiReadFds.find(triggeredFd) != _cgiReadFds.end())
 			{
@@ -278,52 +277,6 @@ void	Server::handleClientWrite(int clientFd)
 	}
 }
 
-
-void Server::registerCgiFds(Client* client)
-{
-    CgiHandler& cgi = client->getCgiHandler();
-    int readFd = cgi.getReadFd();
-    int writeFd = cgi.getWriteFd();
-
-
-    if (readFd != -1)
-    {
-        struct epoll_event evIn;
-        std::memset(&evIn, 0, sizeof(evIn));
-        evIn.events = EPOLLIN | EPOLLRDHUP;
-        evIn.data.fd = readFd;
-        
-        if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, readFd, &evIn) == -1)
-            std::cerr << "Epoll ADD readFd FAILED!" << std::endl;
-        else
-            std::cout << "Successfully registered readFd: " << readFd << " to Epoll" << std::endl;
-        
-        _cgiReadFds[readFd] = client;
-    }
-
-    if (writeFd != -1)
-    {
-        if (cgi.getState() == CgiHandler::CGI_WRITING)
-        {
-            struct epoll_event evOut;
-            std::memset(&evOut, 0, sizeof(evOut));
-            evOut.events = EPOLLOUT | EPOLLRDHUP;
-            evOut.data.fd = writeFd;
-            
-            if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, writeFd, &evOut) == -1)
-                std::cerr << "Epoll ADD writeFd FAILED!" << std::endl;
-            else
-                std::cout << "Successfully registered writeFd: " << writeFd << " to Epoll (EPOLLOUT)" << std::endl;
-            
-            _cgiWriteFds[writeFd] = client;
-        }
-        else
-        {
-            std::cout << "ERROR: writeFd ignored because CGI state is NOT CGI_WRITING" << std::endl;
-        }
-    }
-}
-
 void	Server::removeClient(int clientFd)
 {
 	std::cout << "Disconnecting client FD: " << clientFd << std::endl;
@@ -381,24 +334,50 @@ void	Server::removeClient(int clientFd)
 	}
 }
 
-void	Server::handleCgiWrite(int fd)
+void Server::registerCgiFds(Client* client)
 {
-	std::map<int, Client*>::iterator it = _cgiWriteFds.find(fd);
-	if (it == _cgiWriteFds.end() || it->second == NULL)
-		return ;
-	Client* client = it->second;
 	CgiHandler& cgi = client->getCgiHandler();
-	client->updateLastActivity();
+	int readFd = cgi.getReadFd();
+	int writeFd = cgi.getWriteFd();
 
-	if (cgi.writeToCgi() == false)
+
+	if (readFd != -1)
 	{
-			std::cout << "writeToCgi returned false!" << std::endl;		
-			cleanupCgiFds(fd, false);
+		struct epoll_event evIn;
+		std::memset(&evIn, 0, sizeof(evIn));
+		evIn.events = EPOLLIN | EPOLLRDHUP;
+		evIn.data.fd = readFd;
+		
+		if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, readFd, &evIn) == -1)
+			std::cerr << "Epoll ADD readFd FAILED!" << std::endl;
+		else
+			std::cout << "Successfully registered readFd: " << readFd << " to Epoll" << std::endl;
+		
+		_cgiReadFds[readFd] = client;
 	}
-	if (cgi.getState() == CgiHandler::CGI_READING)
-		cleanupCgiFds(fd, false);
-}
 
+	if (writeFd != -1)
+	{
+		if (cgi.getState() == CgiHandler::CGI_WRITING)
+		{
+			struct epoll_event evOut;
+			std::memset(&evOut, 0, sizeof(evOut));
+			evOut.events = EPOLLOUT | EPOLLRDHUP;
+			evOut.data.fd = writeFd;
+			
+			if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, writeFd, &evOut) == -1)
+				std::cerr << "Epoll ADD writeFd FAILED!" << std::endl;
+			else
+				std::cout << "Successfully registered writeFd: " << writeFd << " to Epoll (EPOLLOUT)" << std::endl;
+			
+			_cgiWriteFds[writeFd] = client;
+		}
+		else
+		{
+			std::cout << "ERROR: writeFd ignored because CGI state is NOT CGI_WRITING" << std::endl;
+		}
+	}
+}
 
 void	Server::handleCgiRead(int fd)
 {
@@ -445,6 +424,24 @@ void	Server::handleCgiRead(int fd)
 		ev.data.fd = client->getFd();
 		epoll_ctl(_epollFd, EPOLL_CTL_MOD, client->getFd(), &ev);
 	}
+}
+
+void	Server::handleCgiWrite(int fd)
+{
+	std::map<int, Client*>::iterator it = _cgiWriteFds.find(fd);
+	if (it == _cgiWriteFds.end() || it->second == NULL)
+		return ;
+	Client* client = it->second;
+	CgiHandler& cgi = client->getCgiHandler();
+	client->updateLastActivity();
+
+	if (cgi.writeToCgi() == false)
+	{
+			std::cout << "writeToCgi returned false!" << std::endl;		
+			cleanupCgiFds(fd, false);
+	}
+	if (cgi.getState() == CgiHandler::CGI_READING)
+		cleanupCgiFds(fd, false);
 }
 
 void	Server::cleanupCgiFds(int fd, bool isReadFd)

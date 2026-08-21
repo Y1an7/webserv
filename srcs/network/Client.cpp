@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:49 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/13 18:52:07 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/21 12:27:58 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -161,7 +161,6 @@ bool	Client::writeData()
 				
 		}
 	}
-
 	if (_sendOffset >= _responseBuffer.length())
 	{
 		_responseBuffer.clear();
@@ -192,6 +191,25 @@ bool	Client::writeData()
 		_request.setMaxBodySize(_activeConfig->getClientMaxBodySize());
 		_state = READING_REQUEST;
 		updateLastActivity();
+		
+		_request.feed(""); 
+		HttpRequest::ParseState reqState = _request.getState();
+		if (reqState == HttpRequest::PARSE_COMPLETE)
+		{
+			resolveActiveConfig();
+			if (checkAndInitCgi())
+				_state = HANDLING_CGI;
+			else
+			{
+				_state = WRITING_RESPONSE;
+				prepareHttpResponse();
+			}
+		}
+		else if (reqState == HttpRequest::PARSE_ERROR)
+		{
+			_state = WRITING_RESPONSE;
+			prepareHttpResponse();
+		}
 		return (true);
 	}
 
@@ -212,7 +230,6 @@ bool	Client::writeData()
 		}
 		return (true);
 	}
-
 	else if (bytesSend == -1)
 	{
 		std::cerr << "Client write error on FD " << this->_fd << std::endl;
@@ -222,6 +239,7 @@ bool	Client::writeData()
 	_state = CLOSE_CONNECTION;
 	return false;
 }
+
 void	Client::prepareHttpResponse()
 {
 	if (_isCgiRequest)

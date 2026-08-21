@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/13 19:07:35 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/20 18:38:31 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,6 @@ void	RequestHandler::execute()
 		handleError(_request.getStatusCode());
 		return ;
 	}
-	
 	else
 	{
 		matchLocation();
@@ -80,7 +79,6 @@ void	RequestHandler::execute()
 			handleError(405);
 			return ;
 		}
-
 		else
 		{
 			resolvePhysicalPath();
