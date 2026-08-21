@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/21 15:14:05 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/21 17:47:16 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -260,7 +260,17 @@ void	Server::handleClientWrite(int clientFd)
 		return ;
 	}
 	
-	if (client->getState() == Client::READING_REQUEST)
+	if (client->getState() == Client::HANDLING_CGI)
+	{
+		registerCgiFds(client);
+		struct epoll_event	ev;
+		std::memset(&ev, 0, sizeof(ev));
+		ev.events = EPOLLIN | EPOLLRDHUP;
+		ev.data.fd = clientFd;
+		if (epoll_ctl(_epollFd, EPOLL_CTL_MOD, clientFd, &ev) == -1)
+			removeClient(clientFd);
+	}
+	else if (client->getState() == Client::READING_REQUEST)
 	{
 		struct epoll_event ev;
 		std::memset(&ev, 0, sizeof(ev));

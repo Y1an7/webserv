@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/15 23:33:22 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/20 18:38:31 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/21 19:12:51 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -402,7 +402,7 @@ void RequestHandler::handlePost()
 		if (q != std::string::npos)
 			uri.erase(q);
 		std::string base = uri.substr(uri.find_last_of('/') + 1);
-		if (base.empty() || base == "." || base == ".." || base.find('/') != std::string::npos)
+		if (base == "." || base == ".." || base.find('/') != std::string::npos)
 		{
 			handleError(400);
 			return ;
