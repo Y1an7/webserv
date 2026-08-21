@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpParser.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rozhang <rozhang@student.42.fr>            +#+  +:+       +#+        */
+/*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/12 18:13:00 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/07/29 18:43:07 by rozhang          ###   ########.fr       */
+/*   Updated: 2026/08/21 19:30:14 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,7 @@ bool	HttpRequest::parseRequestLine()
 	else
 	{
 		_method = UNKNOWN;
-		_statusCode = 501;
+		_statusCode = 405;
 		_state = PARSE_ERROR;
 		return (false);
 	}
