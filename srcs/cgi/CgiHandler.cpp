@@ -375,8 +375,6 @@ bool CgiHandler::writeToCgi()
 		_inputBytesSent += static_cast<size_t>(bytesWritten);
 		if (_inputBytesSent >= _inputBuffer.length())
 		{
-			close(_pipe_in[1]);
-			_pipe_in[1] = -1;
 			_state = CGI_READING; 
 		}
 		return true;

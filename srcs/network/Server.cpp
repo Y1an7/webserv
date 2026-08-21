@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:33:53 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/21 11:04:10 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/21 15:14:05 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -392,13 +392,9 @@ void	Server::handleCgiRead(int fd)
 
 	if (cgi.getState() == CgiHandler::CGI_ERROR)
 	{
-		cleanupCgiFds(fd, true);
-		//the CGI can finish before we managed to write the whole body.
-		//The write fd would then stay in _cgiWriteFds with a Client* that is
-		//about to be deleted -> dangling entry + swallowed events after the
-		//kernel reuses that fd number.
+		cleanupCgiFds(fd, true, client);
 		if (cgi.getWriteFd() != -1)
-			cleanupCgiFds(cgi.getWriteFd(), false);
+			cleanupCgiFds(cgi.getWriteFd(), false, client);
 		client->setState(Client::WRITING_RESPONSE);
 		client->prepareHttpResponse();
 
@@ -412,9 +408,9 @@ void	Server::handleCgiRead(int fd)
 
 	if (cgi.getState() == CgiHandler::CGI_DONE)
 	{
-		cleanupCgiFds(fd, true);
+		cleanupCgiFds(fd, true, client);
 		if (cgi.getWriteFd() != -1)
-			cleanupCgiFds(cgi.getWriteFd(), false);
+			cleanupCgiFds(cgi.getWriteFd(), false, client);
 		client->setState(Client::WRITING_RESPONSE);
 		client->prepareHttpResponse();
 
@@ -438,26 +434,26 @@ void	Server::handleCgiWrite(int fd)
 	if (cgi.writeToCgi() == false)
 	{
 			std::cout << "writeToCgi returned false!" << std::endl;		
-			cleanupCgiFds(fd, false);
+			cleanupCgiFds(fd, false, client);
 	}
 	if (cgi.getState() == CgiHandler::CGI_READING)
-		cleanupCgiFds(fd, false);
+		cleanupCgiFds(fd, false, client);
 }
 
-void	Server::cleanupCgiFds(int fd, bool isReadFd)
+void	Server::cleanupCgiFds(int fd, bool isReadFd, Client* client)
 {
 	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
 	if (isReadFd)
 	{
 		_cgiReadFds.erase(fd);
-		if (_clients.find(fd) != _clients.end())
-			_clients[fd]->getCgiHandler().closeReadFd();
+		if (client != NULL)
+			client->getCgiHandler().closeReadFd();
 	}
 	else
 	{
 		_cgiWriteFds.erase(fd);
-		if (_clients.find(fd) != _clients.end())
-			_clients[fd]->getCgiHandler().closeWriteFd();
+		if (client != NULL)
+			client->getCgiHandler().closeWriteFd();
 			
 	}
 }

@@ -6,7 +6,7 @@
 /*   By: yuczhang <yuczhang@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/07 22:39:56 by yuczhang          #+#    #+#             */
-/*   Updated: 2026/08/19 17:04:24 by yuczhang         ###   ########.fr       */
+/*   Updated: 2026/08/21 15:08:19 by yuczhang         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ class Server
 		void	registerCgiFds(Client* client);
 		void	handleCgiRead(int fd);
 		void	handleCgiWrite(int fd);
-		void	cleanupCgiFds(int fd, bool isReadFd);
+		void	cleanupCgiFds(int fd, bool isReadFd, Client* client);
 
 		void	acceptNewClient(ServerSocket* server);
 		void	handleClientRead(int clientFd);
